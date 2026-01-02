@@ -1,0 +1,77 @@
+{
+  "info": {
+    "name": "Crowdfunding Auth APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"investor1@test.com\",\n  \"password\": \"Test@123\",\n  \"password2\": \"Test@123\",\n  \"role\": \"INVESTOR\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/auth/register/",
+          "protocol": "http",
+          "host": ["localhost", "8000"],
+          "path": ["api", "auth", "register", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"investor1@test.com\",\n  \"password\": \"Test@123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/auth/login/",
+          "protocol": "http",
+          "host": ["localhost", "8000"],
+          "path": ["api", "auth", "login", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Email",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8000/api/auth/verify-email/?token={{token}}&email={{email}}",
+          "protocol": "http",
+          "host": ["localhost", "8000"],
+          "path": ["api", "auth", "verify-email", ""],
+          "query": [
+            {
+              "key": "token",
+              "value": "{{token}}"
+            },
+            {
+              "key": "email",
+              "value": "{{email}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
