@@ -1,18 +1,19 @@
+# config/settings/base.py
 from pathlib import Path
 from decouple import config, Csv
 import datetime
 
-# Build paths
+# ------------------ BASE ------------------
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Security
+# ------------------ SECURITY ------------------
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
-
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
-# Application definition
+# ------------------ APPS ------------------
 INSTALLED_APPS = [
+    # Django core
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -20,12 +21,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party apps
+    # Third-party
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',  # Required for proper logout
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    'drf_spectacular',
+    'drf_spectacular',  # Must be before local apps for proper schema generation
 
     # Local apps
     'apps.users',
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     'apps.dashboard',
 ]
 
+# ------------------ MIDDLEWARE ------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -49,6 +51,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ------------------ URLS & TEMPLATES ------------------
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
@@ -69,7 +72,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database
+# ------------------ DATABASE ------------------
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -81,7 +84,7 @@ DATABASES = {
     }
 }
 
-# Password validation
+# ------------------ PASSWORD VALIDATION ------------------
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -89,26 +92,26 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# ------------------ INTERNATIONALIZATION ------------------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static & Media files
+# ------------------ STATIC & MEDIA ------------------
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
+# ------------------ DEFAULT PK ------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Custom User Model
+# ------------------ CUSTOM USER ------------------
 AUTH_USER_MODEL = 'users.CustomUser'
 
-# REST Framework
+# ------------------ REST FRAMEWORK ------------------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -118,24 +121,39 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-# drf-spectacular Settings (Swagger/Redoc) — Critical for perfect docs
+# ------------------ DRF SPECTACULAR (Swagger/OpenAPI) ------------------
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Crowdfunding Trading Platform API',
-    'DESCRIPTION': 'Share-based crowdfunding platform with restricted access control, sandbox payments, and role-based features.',
+    'DESCRIPTION': 'Equity-based crowdfunding platform with role-based access, restricted content, share investing, and admin governance.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'SWAGGER_UI_SETTINGS': {
         'deepLinking': True,
+        'persistAuthorization': True,
     },
-    'COMPONENT_SPLIT_REQUEST': False,        # Prevents schema generation errors with custom responses
-    'SCHEMA_PATH_PREFIX': '/api/v1/',        # Groups all endpoints under /api/v1/
-    'APPEND_SCHEMA_REQUEST_BODY': True,      # Magic fix: Shows request bodies for APIView (login, reset, etc.)
+
+    # CRITICAL SETTINGS FOR FILE UPLOADS & CUSTOM ACTIONS
+    'COMPONENT_SPLIT_REQUEST': True,  # Essential for multipart/form-data (file upload) in Swagger
+    'SCHEMA_PATH_PREFIX': '/api/v1/',  # Groups all APIs under /api/v1/
+
+    # Ensures @action endpoints are properly included
+    'PREPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.preprocess_exclude_path_format',
+    ],
+
+    # Better support for form data
+    'PARSER_CONTENT_TYPES': {
+        'multipart/form-data': 'multipart',
+        'application/x-www-form-urlencoded': 'form',
+    },
+
+    'APPEND_SCHEMA_REQUEST_BODY': True,
 }
 
-# CORS (Development only — restrict in production)
-CORS_ALLOW_ALL_ORIGINS = True
+# ------------------ CORS (Development only) ------------------
+CORS_ALLOW_ALL_ORIGINS = True  # WARNING: Restrict in production!
 
-# SIMPLE JWT
+# ------------------ SIMPLE JWT ------------------
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=config('ACCESS_TOKEN_MINUTES', default=60, cast=int)),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=config('REFRESH_TOKEN_DAYS', default=7, cast=int)),
@@ -145,19 +163,22 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
-# Email Configuration
+# ------------------ EMAIL ------------------
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='no-reply@crowdfundingplatform.com')
-
-# Frontend URL for verification/reset links
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
-# Token Expiry
 EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 60
 PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 60
 
-# Media Upload Limits (for future validation in views/serializers)
-MAX_UPLOAD_SIZE = 1024 * 1024 * 50  # 50 MB
-ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-ALLOWED_3D_TYPES = ['model/gltf-binary', 'model/gltf+json', 'application/octet-stream']  # .glb, .gltf
-MAX_3D_SIZE = 1024 * 1024 * 100  # 100 MB
+# ------------------ MEDIA UPLOAD LIMITS ------------------
+MAX_UPLOAD_SIZE = 1024 * 1024 * 50  # 50 MB general limit
+ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+ALLOWED_3D_TYPES = ['model/gltf-binary', 'model/gltf+json', 'application/octet-stream']  # .glb/.gltf
+MAX_3D_SIZE = 1024 * 1024 * 100  # 100 MB for 3D models
+
+# Project-specific media limits (used in ProjectMedia validation)
+PROJECT_MEDIA_MAX_SIZE_MB = 50
+PROJECT_MEDIA_ALLOWED_IMAGE_EXT = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
+PROJECT_MEDIA_ALLOWED_3D_EXT = ['.glb', '.gltf']
+PROJECT_MEDIA_ALLOWED_VIDEO_EXT = ['.mp4', '.webm', '.mov']
