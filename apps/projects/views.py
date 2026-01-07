@@ -1,10 +1,21 @@
+# apps/projects/views.py
+
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 from .models import Project, ProjectMedia
-from .serializers import *
+from .serializers import (
+    ProjectCreateSerializer,
+    ProjectListSerializer,
+    ProjectUpdateSerializer,
+    ProjectMediaUploadSerializer,
+    ProjectMediaListSerializer,
+    AdminProjectListSerializer,
+    InvestorProjectListSerializer,
+    InvestorProjectDetailSerializer
+)
 from .permissions import IsDeveloper, IsProjectOwner, IsAdmin
 from .services import (
     validate_project_editable,
@@ -13,7 +24,6 @@ from .services import (
     admin_reject_project,
     admin_request_changes
 )
-
 from apps.favorites.permissions import IsInvestor
 
 
@@ -38,7 +48,7 @@ class MyProjectListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsDeveloper]
 
     def get_queryset(self):
-        return Project.objects.filter(developer=self.request.user)
+        return Project.objects.filter(developer=self.request.user).order_by('-created_at')
 
 
 class ProjectUpdateView(generics.UpdateAPIView):
@@ -75,11 +85,7 @@ class ProjectMediaUploadView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsDeveloper]
 
     def perform_create(self, serializer):
-        project = get_object_or_404(
-            Project,
-            id=self.kwargs['id'],
-            developer=self.request.user
-        )
+        project = get_object_or_404(Project, id=self.kwargs['id'], developer=self.request.user)
         serializer.save(project=project)
 
 
@@ -108,7 +114,7 @@ class AdminPendingProjectListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get_queryset(self):
-        return Project.objects.filter(status='PENDING')
+        return Project.objects.filter(status='PENDING').order_by('-created_at')
 
 
 class AdminProjectApproveView(generics.GenericAPIView):
@@ -156,7 +162,7 @@ class InvestorProjectBrowseView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get_queryset(self):
-        return Project.objects.filter(status='APPROVED')
+        return Project.objects.filter(status='APPROVED').order_by('-created_at')
 
 
 class InvestorProjectDetailView(generics.RetrieveAPIView):
@@ -176,8 +182,4 @@ class InvestorProjectCompareView(generics.ListAPIView):
         ids = self.request.query_params.get('ids')
         if not ids:
             return Project.objects.none()
-
-        return Project.objects.filter(
-            id__in=ids.split(','),
-            status='APPROVED'
-        )
+        return Project.objects.filter(id__in=ids.split(','), status='APPROVED')

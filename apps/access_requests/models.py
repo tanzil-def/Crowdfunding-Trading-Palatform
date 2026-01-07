@@ -1,10 +1,10 @@
+# apps/access_requests/models.py
 import uuid
 from django.db import models
 from apps.users.models import User
 from apps.projects.models import Project
 
 class AccessRequest(models.Model):
-
     STATUS_CHOICES = (
         ('PENDING', 'Pending'),
         ('APPROVED', 'Approved'),
@@ -17,9 +17,19 @@ class AccessRequest(models.Model):
     investor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access_requests')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     reason = models.TextField(blank=True, null=True)
-    decided_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='decided_access_requests')
+    decided_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='decided_access_requests'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('project', 'investor')
         ordering = ['-created_at']
+
+    def __str__(self):
+        return f"AccessRequest({self.project.title} - {self.investor.email} - {self.status})"
+
