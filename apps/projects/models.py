@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 # projects/models.py
 import uuid
 from django.db import models
@@ -53,4 +51,5 @@ class ProjectMedia(models.Model):
 
     class Meta:
         ordering = ['uploaded_at']
->>>>>>> 83d38a9 (WIP: work in progress on project features)
+
+
