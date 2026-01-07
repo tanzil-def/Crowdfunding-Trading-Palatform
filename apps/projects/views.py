@@ -1,5 +1,3 @@
-# apps/projects/views.py
-
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -32,6 +30,7 @@ from apps.favorites.permissions import IsInvestor
 # ======================================================
 
 class ProjectCreateView(generics.CreateAPIView):
+    """Developer: Create a new project"""
     serializer_class = ProjectCreateSerializer
     permission_classes = [IsAuthenticated, IsDeveloper]
 
@@ -44,6 +43,7 @@ class ProjectCreateView(generics.CreateAPIView):
 
 
 class MyProjectListView(generics.ListAPIView):
+    """Developer: List my projects"""
     serializer_class = ProjectListSerializer
     permission_classes = [IsAuthenticated, IsDeveloper]
 
@@ -52,6 +52,7 @@ class MyProjectListView(generics.ListAPIView):
 
 
 class ProjectUpdateView(generics.UpdateAPIView):
+    """Developer: Update project (PUT/PATCH)"""
     serializer_class = ProjectUpdateSerializer
     permission_classes = [IsAuthenticated, IsDeveloper, IsProjectOwner]
     lookup_field = 'id'
@@ -59,12 +60,27 @@ class ProjectUpdateView(generics.UpdateAPIView):
     def get_queryset(self):
         return Project.objects.filter(developer=self.request.user)
 
-    def perform_update(self, serializer):
-        validate_project_editable(self.get_object())
-        serializer.save()
+    def update(self, request, *args, **kwargs):
+        """
+        Handles both PUT and PATCH requests.
+        PATCH requests are partial updates.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        validate_project_editable(instance)
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(
+            {"success": True, "message": "Project updated", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
 
 
 class ProjectSubmitView(generics.GenericAPIView):
+    """Developer: Submit project for admin review"""
     permission_classes = [IsAuthenticated, IsDeveloper, IsProjectOwner]
 
     def post(self, request, id):
@@ -162,24 +178,4 @@ class InvestorProjectBrowseView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get_queryset(self):
-        return Project.objects.filter(status='APPROVED').order_by('-created_at')
-
-
-class InvestorProjectDetailView(generics.RetrieveAPIView):
-    serializer_class = InvestorProjectDetailSerializer
-    permission_classes = [IsAuthenticated, IsInvestor]
-    lookup_field = 'id'
-
-    def get_queryset(self):
-        return Project.objects.filter(status='APPROVED')
-
-
-class InvestorProjectCompareView(generics.ListAPIView):
-    serializer_class = InvestorProjectListSerializer
-    permission_classes = [IsAuthenticated, IsInvestor]
-
-    def get_queryset(self):
-        ids = self.request.query_params.get('ids')
-        if not ids:
-            return Project.objects.none()
-        return Project.objects.filter(id__in=ids.split(','), status='APPROVED')
+        return Pr

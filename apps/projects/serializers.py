@@ -23,6 +23,10 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
 
 
 class ProjectUpdateSerializer(serializers.ModelSerializer):
+    """
+    Supports full and partial update.
+    Partial update handled via 'partial=True' in views.
+    """
     class Meta:
         model = Project
         fields = ('title','description','category','restricted_fields','is_3d_restricted')
@@ -67,6 +71,8 @@ class AdminProjectListSerializer(serializers.ModelSerializer):
             'developer_email','total_project_value',
             'total_shares','share_price','created_at'
         )
+
+
 class InvestorProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
@@ -96,4 +102,3 @@ class InvestorProjectDetailSerializer(serializers.ModelSerializer):
             'shares_sold',
             'created_at'
         )
-

@@ -83,6 +83,29 @@ class LoginView(generics.GenericAPIView):
         })
 
 # -------------------------------
+# LOGOUT
+# -------------------------------
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response(
+                    {"success": False, "error": {"code": "NO_TOKEN_PROVIDED", "message": "Refresh token is required"}},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # Blacklist the refresh token
+            return Response({"success": True, "message": "Logout successful"})
+        except Exception as e:
+            return Response(
+                {"success": False, "error": {"code": "INVALID_TOKEN", "message": str(e)}},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+# -------------------------------
 # EMAIL VERIFICATION
 # -------------------------------
 class VerifyEmailView(APIView):

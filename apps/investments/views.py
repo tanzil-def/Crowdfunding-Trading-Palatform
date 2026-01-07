@@ -1,5 +1,3 @@
-# apps/investments/views.py
-
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -16,7 +14,9 @@ from apps.users.permissions import IsInvestor
 from apps.projects.models import Project
 
 
+# --------------------------------------
 # POST /investments/initiate/
+# --------------------------------------
 class InvestmentInitiateView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, IsInvestor]
     serializer_class = InitiateInvestmentSerializer
@@ -29,6 +29,7 @@ class InvestmentInitiateView(generics.GenericAPIView):
         shares_requested = serializer.validated_data['shares_requested']
         idempotency_key = serializer.validated_data['idempotency_key']
 
+        # Only approved projects
         project = get_object_or_404(Project, id=project_id, status='APPROVED')
 
         payment_info = initiate_investment(
@@ -45,9 +46,13 @@ class InvestmentInitiateView(generics.GenericAPIView):
         })
 
 
+# --------------------------------------
 # POST /payments/callback/
+# Standardized path (was /investments/callback/)
+# --------------------------------------
 class PaymentCallbackView(generics.GenericAPIView):
     serializer_class = PaymentCallbackSerializer
+    permission_classes = []  # optional: allow external gateway without auth
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -56,7 +61,7 @@ class PaymentCallbackView(generics.GenericAPIView):
         confirm_payment(
             payment_reference_id=serializer.validated_data['payment_reference_id'],
             gateway_payload=serializer.validated_data['gateway_payload'],
-            admin_user=request.user,  # assuming admin triggers callback
+            admin_user=request.user if request.user.is_authenticated else None,
             success=serializer.validated_data['success']
         )
 
@@ -66,10 +71,14 @@ class PaymentCallbackView(generics.GenericAPIView):
         })
 
 
+# --------------------------------------
 # GET /investments/my/
+# --------------------------------------
 class MyInvestmentsListView(generics.ListAPIView):
     serializer_class = SharePurchaseListSerializer
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get_queryset(self):
-        return SharePurchase.objects.filter(investor=self.request.user).order_by('-created_at')
+        return SharePurchase.objects.filter(
+            investor=self.request.user
+        ).order_by('-created_at')
