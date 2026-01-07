@@ -23,7 +23,6 @@ from .views import (
 )
 
 urlpatterns = [
-
     # ===============================
     # Phase 2 – Developer Project
     # ===============================
@@ -53,4 +52,3 @@ urlpatterns = [
     path('compare/', InvestorProjectCompareView.as_view(), name='investor-project-compare'),
     path('<uuid:id>/detail/', InvestorProjectDetailView.as_view(), name='investor-project-detail'),
 ]
-

@@ -24,8 +24,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
 
 class ProjectUpdateSerializer(serializers.ModelSerializer):
     """
-    Supports full and partial update.
-    Partial update handled via 'partial=True' in views.
+    Supports partial updates (PATCH)
     """
     class Meta:
         model = Project
@@ -73,6 +72,7 @@ class AdminProjectListSerializer(serializers.ModelSerializer):
         )
 
 
+# ---------- Investor ----------
 class InvestorProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
