@@ -1,29 +1,6 @@
 from rest_framework import serializers
-from .models import CustomUser
-
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, min_length=8, style={'input_type': 'password'})
-    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-
-    class Meta:
-        model = CustomUser
-        fields = ['email', 'role', 'password', 'password2']
-        extra_kwargs = {
-            'email': {'required': True},
-            'role': {'required': True},
-        }
-
-    def validate_role(self, value):
-        if value == CustomUser.Role.ADMIN:
-            raise serializers.ValidationError("Cannot register as Admin. Use admin panel for admins.")
-        return value
-
-    def validate(self, data):
-        if data['password'] != data['password2']:
-            raise serializers.ValidationError({"password": "Passwords must match."})
-        return data
-from .models import User
 from django.contrib.auth.password_validation import validate_password
+from .models import User
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -43,17 +20,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True, style={'input_type': 'password'})
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CustomUser
-        fields = ['email', 'role', 'is_verified']
-
-class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
+        model = User
+        fields = ['id','name','email','role','is_email_verified']
 
 class EmailVerificationSerializer(serializers.Serializer):
     token = serializers.CharField()

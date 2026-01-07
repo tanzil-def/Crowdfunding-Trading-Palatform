@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.urls import path, include
-<<<<<<< HEAD
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 urlpatterns = [
@@ -15,7 +14,6 @@ urlpatterns = [
     path('api/docs/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('api/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
-=======
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -53,4 +51,3 @@ if settings.DEBUG:
         urlpatterns = [
             path('__debug__/', include(debug_toolbar.urls)),
         ] + urlpatterns
->>>>>>> 83d38a9 (WIP: work in progress on project features)

@@ -3,20 +3,16 @@ from .views import (
     RegisterView,
     LoginView,
     VerifyEmailView,
-    ResendVerificationEmailView,
-    RegisterView, LoginView, LogoutView,
-    VerifyEmailView, PasswordResetRequestView,
+    PasswordResetRequestView,
     PasswordResetConfirmView
 )
+
+app_name = "users"  # <- add this line
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
-
-    path('resend-verification/', ResendVerificationEmailView.as_view(), name='resend-verification'),
-
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
 ]
-
