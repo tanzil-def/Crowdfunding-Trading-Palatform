@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import uuid
 from datetime import timedelta
 
@@ -23,15 +24,44 @@ from rest_framework import serializers  # inline_serializer er jonno
 
 from .models import CustomUser
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+=======
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
+from django.conf import settings
+import uuid
 
+from .models import User
+from .serializers import (
+    RegisterSerializer, LoginSerializer,
+    EmailVerificationSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer
+)
+from .permissions import IsVerified
+>>>>>>> 83d38a9 (WIP: work in progress on project features)
 
+# Token storage (replace with DB or JWT-signed in prod)
+EMAIL_VERIFICATION_TOKENS = {}
+PASSWORD_RESET_TOKENS = {}
+
+<<<<<<< HEAD
 # -------------------------------
 # REGISTER
 # -------------------------------
 class RegisterView(generics.CreateAPIView):
+=======
+class RegisterView(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
+>>>>>>> 83d38a9 (WIP: work in progress on project features)
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
 
+<<<<<<< HEAD
     @extend_schema(
         summary="Register new user (Investor or Developer)",
         description="Creates a new user and sends email verification link. Role must be 'INVESTOR' or 'DEVELOPER'.",
@@ -184,11 +214,47 @@ class ResendVerificationEmailView(APIView):
         request=inline_serializer(name="ResendEmail", fields={"email": serializers.EmailField()}),
         responses={200: {"success": True, "message": "Verification email resent"}},
     )
-    def post(self, request):
-        email = request.data.get("email")
-        if not email:
-            return Response({"success": False, "message": "Email required"}, status=400)
+=======
+    def perform_create(self, serializer):
+        user = serializer.save()
+        token = str(uuid.uuid4())
+        EMAIL_VERIFICATION_TOKENS[token] = user.email
+        send_mail(
+            subject="Welcome! Verify your email",
+            message=f"Hello {user.name}, verify your email: http://localhost:3000/verify-email/?token={token}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email]
+        )
 
+    def create(self, request, *args, **kwargs):
+        resp = super().create(request, *args, **kwargs)
+        return Response({
+            "success": True,
+            "message": "Registration successful. Verification email sent.",
+            "data": resp.data
+        })
+
+class VerifyEmailView(generics.GenericAPIView):
+    serializer_class = EmailVerificationSerializer
+    permission_classes = [AllowAny]
+
+>>>>>>> 83d38a9 (WIP: work in progress on project features)
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data['token']
+        email = EMAIL_VERIFICATION_TOKENS.pop(token, None)
+        if not email:
+            return Response({
+                "success": False,
+                "error": {"code": "INVALID_TOKEN","message":"Invalid token"}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        user = get_object_or_404(User, email=email)
+        user.is_email_verified = True
+        user.save()
+        return Response({"success": True,"message":"Email verified successfully"})
+
+<<<<<<< HEAD
         try:
             user = CustomUser.objects.get(email=email)
             if user.is_verified:
@@ -211,3 +277,76 @@ class ResendVerificationEmailView(APIView):
             return Response({"success": True, "message": "Verification email resent"})
         except CustomUser.DoesNotExist:
             return Response({"success": False, "message": "User not found"}, status=404)
+=======
+class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = authenticate(email=serializer.validated_data['email'], password=serializer.validated_data['password'])
+        if not user:
+            return Response({"success": False,"error":{"code":"INVALID_CREDENTIALS","message":"Invalid credentials"}}, status=status.HTTP_401_UNAUTHORIZED)
+        if not user.is_email_verified:
+            return Response({"success": False,"error":{"code":"EMAIL_NOT_VERIFIED","message":"Email not verified"}}, status=status.HTTP_403_FORBIDDEN)
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "success": True,
+            "message": "Login successful",
+            "data": {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": str(user.id),
+                    "name": user.name,
+                    "email": user.email,
+                    "role": user.role
+                }
+            }
+        })
+
+class LogoutView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        return Response({"success": True,"message":"Logged out successfully"})
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.filter(email=serializer.validated_data['email']).first()
+        if user:
+            token = str(uuid.uuid4())
+            PASSWORD_RESET_TOKENS[token] = user.email
+            send_mail(
+                subject="Password Reset Request",
+                message=f"Hello {user.name}, reset your password: http://localhost:3000/reset-password/?token={token}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email]
+            )
+        return Response({"success": True,"message":"If email exists, password reset link sent."})
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data['token']
+        email = PASSWORD_RESET_TOKENS.pop(token, None)
+        if not email:
+            return Response({
+                "success": False,
+                "error": {"code":"INVALID_TOKEN","message":"Invalid token"}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        user = get_object_or_404(User, email=email)
+        user.set_password(serializer.validated_data['password'])
+        user.save()
+        return Response({"success": True,"message":"Password reset successful"})
+>>>>>>> 83d38a9 (WIP: work in progress on project features)

@@ -1,0 +1,186 @@
+<<<<<<< HEAD
+=======
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+
+from .models import Project, ProjectMedia
+from .serializers import *
+from .permissions import IsDeveloper, IsProjectOwner, IsAdmin
+from .services import (
+    validate_project_editable,
+    submit_project_for_review,
+    admin_approve_project,
+    admin_reject_project,
+    admin_request_changes
+)
+
+from apps.favorites.permissions import IsInvestor
+
+
+# ======================================================
+# Phase 2 – Developer Project
+# ======================================================
+
+class ProjectCreateView(generics.CreateAPIView):
+    serializer_class = ProjectCreateSerializer
+    permission_classes = [IsAuthenticated, IsDeveloper]
+
+    def create(self, request, *args, **kwargs):
+        res = super().create(request, *args, **kwargs)
+        return Response(
+            {"success": True, "message": "Project created", "data": res.data},
+            status=status.HTTP_201_CREATED
+        )
+
+
+class MyProjectListView(generics.ListAPIView):
+    serializer_class = ProjectListSerializer
+    permission_classes = [IsAuthenticated, IsDeveloper]
+
+    def get_queryset(self):
+        return Project.objects.filter(developer=self.request.user)
+
+
+class ProjectUpdateView(generics.UpdateAPIView):
+    serializer_class = ProjectUpdateSerializer
+    permission_classes = [IsAuthenticated, IsDeveloper, IsProjectOwner]
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        return Project.objects.filter(developer=self.request.user)
+
+    def perform_update(self, serializer):
+        validate_project_editable(self.get_object())
+        serializer.save()
+
+
+class ProjectSubmitView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsDeveloper, IsProjectOwner]
+
+    def post(self, request, id):
+        project = get_object_or_404(Project, id=id, developer=request.user)
+        submit_project_for_review(project)
+        return Response(
+            {"success": True, "message": "Submitted for review"},
+            status=status.HTTP_200_OK
+        )
+
+
+# ======================================================
+# Phase 3 – Project Media
+# ======================================================
+
+class ProjectMediaUploadView(generics.CreateAPIView):
+    serializer_class = ProjectMediaUploadSerializer
+    permission_classes = [IsAuthenticated, IsDeveloper]
+
+    def perform_create(self, serializer):
+        project = get_object_or_404(
+            Project,
+            id=self.kwargs['id'],
+            developer=self.request.user
+        )
+        serializer.save(project=project)
+
+
+class ProjectMediaListView(generics.ListAPIView):
+    serializer_class = ProjectMediaListSerializer
+
+    def get_queryset(self):
+        project = get_object_or_404(Project, id=self.kwargs['id'])
+        qs = ProjectMedia.objects.filter(project=project)
+
+        if not self.request.user.is_authenticated:
+            return qs.filter(is_restricted=False)
+
+        if self.request.user.role == 'ADMIN' or self.request.user == project.developer:
+            return qs
+
+        return qs.filter(is_restricted=False)
+
+
+# ======================================================
+# Phase 4 – Admin Review
+# ======================================================
+
+class AdminPendingProjectListView(generics.ListAPIView):
+    serializer_class = AdminProjectListSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        return Project.objects.filter(status='PENDING')
+
+
+class AdminProjectApproveView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request, id):
+        project = get_object_or_404(Project, id=id)
+        admin_approve_project(project)
+        return Response(
+            {"success": True, "message": "Project approved"},
+            status=status.HTTP_200_OK
+        )
+
+
+class AdminProjectRejectView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request, id):
+        project = get_object_or_404(Project, id=id)
+        admin_reject_project(project)
+        return Response(
+            {"success": True, "message": "Project rejected"},
+            status=status.HTTP_200_OK
+        )
+
+
+class AdminProjectRequestChangesView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request, id):
+        project = get_object_or_404(Project, id=id)
+        admin_request_changes(project)
+        return Response(
+            {"success": True, "message": "Needs changes"},
+            status=status.HTTP_200_OK
+        )
+
+
+# ======================================================
+# Phase 5 – Investor Browse / Compare
+# ======================================================
+
+class InvestorProjectBrowseView(generics.ListAPIView):
+    serializer_class = InvestorProjectListSerializer
+    permission_classes = [IsAuthenticated, IsInvestor]
+
+    def get_queryset(self):
+        return Project.objects.filter(status='APPROVED')
+
+
+class InvestorProjectDetailView(generics.RetrieveAPIView):
+    serializer_class = InvestorProjectDetailSerializer
+    permission_classes = [IsAuthenticated, IsInvestor]
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        return Project.objects.filter(status='APPROVED')
+
+
+class InvestorProjectCompareView(generics.ListAPIView):
+    serializer_class = InvestorProjectListSerializer
+    permission_classes = [IsAuthenticated, IsInvestor]
+
+    def get_queryset(self):
+        ids = self.request.query_params.get('ids')
+        if not ids:
+            return Project.objects.none()
+
+        return Project.objects.filter(
+            id__in=ids.split(','),
+            status='APPROVED'
+        )
+>>>>>>> 83d38a9 (WIP: work in progress on project features)
