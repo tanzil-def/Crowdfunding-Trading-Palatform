@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 from rest_framework.permissions import BasePermission
 
 class IsDeveloper(BasePermission):
@@ -33,4 +31,3 @@ class CanViewMedia(BasePermission):
             return True
 
         return False
->>>>>>> 83d38a9 (WIP: work in progress on project features)

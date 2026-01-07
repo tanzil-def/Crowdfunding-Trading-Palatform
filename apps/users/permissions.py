@@ -2,7 +2,6 @@
 
 from rest_framework.permissions import BasePermission
 
-<<<<<<< HEAD
 class IsAdmin(BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_admin
@@ -19,7 +18,6 @@ class IsVerified(BasePermission):
     """For future: Block unverified investors from investing/access requests."""
     def has_permission(self, request, view):
         return request.user and request.user.is_verified
-=======
 
 class IsVerified(BasePermission):
     """
@@ -85,4 +83,4 @@ class IsInvestor(BasePermission):
             and request.user.is_authenticated
             and request.user.role == 'INVESTOR'
         )
->>>>>>> 83d38a9 (WIP: work in progress on project features)
+

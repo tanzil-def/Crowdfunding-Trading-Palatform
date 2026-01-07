@@ -90,7 +90,6 @@ class InvestorProjectDetailSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'category',
-o
             'total_project_value',
             'total_shares',
             'share_price',

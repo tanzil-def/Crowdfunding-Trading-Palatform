@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 from django.urls import path
 from .views import (
     # Phase 2 – Developer Project
@@ -55,4 +53,4 @@ urlpatterns = [
     path('compare/', InvestorProjectCompareView.as_view(), name='investor-project-compare'),
     path('<uuid:id>/detail/', InvestorProjectDetailView.as_view(), name='investor-project-detail'),
 ]
->>>>>>> 83d38a9 (WIP: work in progress on project features)
+

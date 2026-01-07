@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import uuid
 from datetime import timedelta
 
@@ -17,14 +16,13 @@ from drf_spectacular.utils import (
     extend_schema,
     OpenApiExample,
     OpenApiResponse,
-    OpenApiParameter,  # <--- EI IMPORT ADD KORA HOYECHE
+    OpenApiParameter,  
     inline_serializer,
 )
 from rest_framework import serializers  # inline_serializer er jonno
 
 from .models import CustomUser
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
-=======
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -43,25 +41,18 @@ from .serializers import (
     PasswordResetConfirmSerializer
 )
 from .permissions import IsVerified
->>>>>>> 83d38a9 (WIP: work in progress on project features)
 
 # Token storage (replace with DB or JWT-signed in prod)
 EMAIL_VERIFICATION_TOKENS = {}
 PASSWORD_RESET_TOKENS = {}
-
-<<<<<<< HEAD
 # -------------------------------
 # REGISTER
 # -------------------------------
 class RegisterView(generics.CreateAPIView):
-=======
-class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
->>>>>>> 83d38a9 (WIP: work in progress on project features)
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
 
-<<<<<<< HEAD
     @extend_schema(
         summary="Register new user (Investor or Developer)",
         description="Creates a new user and sends email verification link. Role must be 'INVESTOR' or 'DEVELOPER'.",
@@ -214,7 +205,8 @@ class ResendVerificationEmailView(APIView):
         request=inline_serializer(name="ResendEmail", fields={"email": serializers.EmailField()}),
         responses={200: {"success": True, "message": "Verification email resent"}},
     )
-=======
+    
+
     def perform_create(self, serializer):
         user = serializer.save()
         token = str(uuid.uuid4())
@@ -238,7 +230,6 @@ class VerifyEmailView(generics.GenericAPIView):
     serializer_class = EmailVerificationSerializer
     permission_classes = [AllowAny]
 
->>>>>>> 83d38a9 (WIP: work in progress on project features)
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -253,8 +244,6 @@ class VerifyEmailView(generics.GenericAPIView):
         user.is_email_verified = True
         user.save()
         return Response({"success": True,"message":"Email verified successfully"})
-
-<<<<<<< HEAD
         try:
             user = CustomUser.objects.get(email=email)
             if user.is_verified:
@@ -277,7 +266,7 @@ class VerifyEmailView(generics.GenericAPIView):
             return Response({"success": True, "message": "Verification email resent"})
         except CustomUser.DoesNotExist:
             return Response({"success": False, "message": "User not found"}, status=404)
-=======
+        
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [AllowAny]
@@ -349,4 +338,3 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         user.set_password(serializer.validated_data['password'])
         user.save()
         return Response({"success": True,"message":"Password reset successful"})
->>>>>>> 83d38a9 (WIP: work in progress on project features)

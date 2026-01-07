@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -183,4 +181,3 @@ class InvestorProjectCompareView(generics.ListAPIView):
             id__in=ids.split(','),
             status='APPROVED'
         )
->>>>>>> 83d38a9 (WIP: work in progress on project features)

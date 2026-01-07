@@ -1,14 +1,17 @@
-<<<<<<< HEAD
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+# apps/users/models.py
+import uuid
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 
-class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
+class UserManager(BaseUserManager):
+    """Custom User Manager"""
+
+    def create_user(self, email, role='INVESTOR', password=None, **extra_fields):
         if not email:
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+        user = self.model(email=email, role=role, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -16,49 +19,37 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', CustomUser.Role.ADMIN)
-        extra_fields.setdefault('is_verified', True)
-        return self.create_user(email, password, **extra_fields)
+        return self.create_user(email=email, role='ADMIN', password=password, **extra_fields)
 
-class CustomUser(AbstractBaseUser, PermissionsMixin):
-    class Role(models.TextChoices):
-        ADMIN = 'ADMIN', 'Admin'
-        DEVELOPER = 'DEVELOPER', 'Project Developer'
-        INVESTOR = 'INVESTOR', 'Investor'
-
-=======
-from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from .managers import UserManager
-import uuid
 
 class User(AbstractBaseUser, PermissionsMixin):
-    ROLE_CHOICES = (
-        ('DEVELOPER','Developer'),
-        ('INVESTOR','Investor'),
-        ('ADMIN','Admin'),
-    )
+    """Custom User model with roles and email verification"""
+
+    class Role(models.TextChoices):
+        ADMIN = 'ADMIN', 'Admin'
+        DEVELOPER = 'DEVELOPER', 'Developer'
+        INVESTOR = 'INVESTOR', 'Investor'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, blank=True)
->>>>>>> 83d38a9 (WIP: work in progress on project features)
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.INVESTOR)
     is_email_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-<<<<<<< HEAD
+    last_login = models.DateTimeField(blank=True, null=True)
     date_joined = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
     verification_token = models.UUIDField(null=True, blank=True)
     verification_token_expiry = models.DateTimeField(null=True, blank=True)
 
-    objects = CustomUserManager()
+    objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['role']
 
     def __str__(self):
-        return self.email
+        return f"{self.email} ({self.role})"
 
     @property
     def is_admin(self):
@@ -71,15 +62,3 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_investor(self):
         return self.role == self.Role.INVESTOR
-=======
-    last_login = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = UserManager()
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['role']
-
-    def __str__(self):
-        return f"{self.email} ({self.role})"
->>>>>>> 83d38a9 (WIP: work in progress on project features)
