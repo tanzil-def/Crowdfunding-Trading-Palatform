@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 from rest_framework import serializers
 from .models import Project, ProjectMedia
 from .services import calculate_share_price, validate_media
@@ -92,6 +90,7 @@ class InvestorProjectDetailSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'category',
+o
             'total_project_value',
             'total_shares',
             'share_price',
@@ -99,4 +98,3 @@ class InvestorProjectDetailSerializer(serializers.ModelSerializer):
             'created_at'
         )
 
->>>>>>> 83d38a9 (WIP: work in progress on project features)
