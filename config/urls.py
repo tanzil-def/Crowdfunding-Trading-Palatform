@@ -1,13 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
-
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularSwaggerView,
-    SpectacularRedocView,
-)
+<<<<<<< HEAD
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 urlpatterns = [
     # Admin Panel
@@ -18,21 +12,45 @@ urlpatterns = [
 
     # API Schema & Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),  # duplicate for convenience
+    path('api/docs/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path('api/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+]
+=======
+from django.conf import settings
+from django.conf.urls.static import static
+
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+
+    # API v1
+    path('api/v1/auth/', include(('apps.users.urls', 'users'), namespace='auth')),
+    path('api/v1/projects/', include('apps.projects.urls')),
+    path('api/v1/access-requests/', include('apps.access_requests.urls')),
+    path('api/v1/favorites/', include('apps.favorites.urls')),
+    path('api/v1/investments/', include('apps.investments.urls')),
+    path('api/v1/notifications/', include('apps.notifications.urls')),
+    path('api/v1/dashboard/', include('apps.dashboard.urls')),
+    path('api/v1/audit/', include('apps.audit.urls')),
+
+    # Schema & Docs (NORMAL SWAGGER)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
-# ==================== DEVELOPMENT ONLY SETTINGS ====================
 if settings.DEBUG:
-    # Serve media & static files in development
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-    # === DJANGO DEBUG TOOLBAR URLs (এটাই missing ছিল) ===
-    # 'djdt' namespace register করার জন্য এই line টা অবশ্যই লাগবে
     if 'debug_toolbar' in settings.INSTALLED_APPS:
-        import debug_toolbar  
+        import debug_toolbar
         urlpatterns = [
-            path('__debug__/', include(debug_toolbar.urls)),  # <-- এই line যোগ করো
+            path('__debug__/', include(debug_toolbar.urls)),
         ] + urlpatterns
+>>>>>>> 83d38a9 (WIP: work in progress on project features)
