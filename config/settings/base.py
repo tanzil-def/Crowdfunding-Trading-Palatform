@@ -1,9 +1,10 @@
-# config/settings/base.py
 from pathlib import Path
 from decouple import config, Csv
 import datetime
 
-# Build paths
+# ===============================
+# BASE DIRECTORY
+# ===============================
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # ===============================
@@ -11,13 +12,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # ===============================
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+
+ALLOWED_HOSTS = config(
+    "ALLOWED_HOSTS",
+    default="127.0.0.1,localhost",
+    cast=Csv()
+)
 
 # ===============================
 # APPLICATION DEFINITION
 # ===============================
 INSTALLED_APPS = [
-    # Django default
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -43,6 +48,9 @@ INSTALLED_APPS = [
     "apps.dashboard",
 ]
 
+# ===============================
+# MIDDLEWARE
+# ===============================
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -54,8 +62,15 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# ===============================
+# URL & WSGI
+# ===============================
 ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
 
+# ===============================
+# TEMPLATES
+# ===============================
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -72,10 +87,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
-
 # ===============================
-# DATABASE
+# DATABASE (POSTGRESQL)
 # ===============================
 DATABASES = {
     "default": {
@@ -89,16 +102,16 @@ DATABASES = {
 }
 
 # ===============================
-# AUTH & PASSWORD VALIDATION
+# AUTH CONFIG
 # ===============================
+AUTH_USER_MODEL = "users.User"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
-
-AUTH_USER_MODEL = "users.User"
 
 # ===============================
 # INTERNATIONALIZATION
@@ -120,7 +133,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ===============================
-# REST FRAMEWORK
+# DJANGO REST FRAMEWORK
 # ===============================
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -131,9 +144,12 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
+# ===============================
+# SWAGGER / OPENAPI
+# ===============================
 SPECTACULAR_SETTINGS = {
     "TITLE": "Crowdfunding Trading Platform API",
-    "DESCRIPTION": "Share-based crowdfunding platform with restricted access control.",
+    "DESCRIPTION": "Share-based crowdfunding platform with role-based access control.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
@@ -141,6 +157,9 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": False,
 }
 
+# ===============================
+# CORS
+# ===============================
 CORS_ALLOW_ALL_ORIGINS = True
 
 # ===============================
@@ -157,22 +176,21 @@ SIMPLE_JWT = {
 # ===============================
 # EMAIL CONFIG
 # ===============================
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "no-reply@crowdfundingplatform.com"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = config("EMAIL_PORT", cast=int)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = f"Crowdfunding Platform <{EMAIL_HOST_USER}>"
 
-FRONTEND_URL = "http://localhost:3000"
+# ===============================
+# FRONTEND URL
+# ===============================
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+
+# ===============================
+# TOKEN EXPIRY
+# ===============================
 EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 60
 PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 60
-
-# ===============================
-# UPLOAD SETTINGS
-# ===============================
-MAX_UPLOAD_SIZE = 1024 * 1024 * 50
-MAX_3D_SIZE = 1024 * 1024 * 100
-
-ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
-ALLOWED_3D_TYPES = [
-    "model/gltf-binary",
-    "model/gltf+json",
-    "application/octet-stream",
-]

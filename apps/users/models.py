@@ -22,7 +22,7 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    """Custom User model with roles and email verification"""
+    """Custom User model with roles, email verification, and password reset"""
 
     class Role(models.TextChoices):
         ADMIN = 'ADMIN', 'Admin'
@@ -39,8 +39,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_login = models.DateTimeField(blank=True, null=True)
     date_joined = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(auto_now_add=True)
-    verification_token = models.UUIDField(null=True, blank=True)
+
+    # Email verification fields
+    verification_token = models.CharField(max_length=255, null=True, blank=True)
     verification_token_expiry = models.DateTimeField(null=True, blank=True)
+
+    # Password reset fields
+    password_reset_token = models.CharField(max_length=255, null=True, blank=True)
+    password_reset_token_expiry = models.DateTimeField(null=True, blank=True)
 
     objects = UserManager()
 
