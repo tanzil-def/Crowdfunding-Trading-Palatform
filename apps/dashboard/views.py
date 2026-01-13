@@ -1,31 +1,58 @@
+# apps/dashboard/views.py
+
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from apps.dashboard.services import get_developer_dashboard, get_investor_dashboard, get_admin_dashboard
-from apps.users.permissions import IsDeveloper, IsInvestor, IsAdmin
 
-# GET /dashboard/developer/
-class DeveloperDashboardView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsDeveloper]
+from apps.dashboard.services import (
+    get_developer_dashboard,
+    get_investor_dashboard,
+    get_admin_dashboard
+)
+from apps.users.permissions import IsDeveloperUser, IsInvestorUser, IsAdminUser
 
-    def get(self, request):
+
+class BaseDashboardView(generics.GenericAPIView):
+    """
+    Base class for dashboard views.
+    Handles standard GET response structure.
+    """
+
+    def get_success_response(self, data):
+        return Response({"success": True, "data": data})
+
+
+class DeveloperDashboardView(BaseDashboardView):
+    """
+    Developer dashboard endpoint
+    GET /dashboard/developer/
+    """
+    permission_classes = [IsAuthenticated, IsDeveloperUser]
+
+    def get(self, request, *args, **kwargs):
         data = get_developer_dashboard(request.user)
-        return Response({"success": True, "data": data})
+        return self.get_success_response(data)
 
 
-# GET /dashboard/investor/
-class InvestorDashboardView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsInvestor]
+class InvestorDashboardView(BaseDashboardView):
+    """
+    Investor dashboard endpoint
+    GET /dashboard/investor/
+    """
+    permission_classes = [IsAuthenticated, IsInvestorUser]
 
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         data = get_investor_dashboard(request.user)
-        return Response({"success": True, "data": data})
+        return self.get_success_response(data)
 
 
-# GET /dashboard/admin/
-class AdminDashboardView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+class AdminDashboardView(BaseDashboardView):
+    """
+    Admin dashboard endpoint
+    GET /dashboard/admin/
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         data = get_admin_dashboard()
-        return Response({"success": True, "data": data})
+        return self.get_success_response(data)

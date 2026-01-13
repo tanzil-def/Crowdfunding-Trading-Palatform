@@ -1,42 +1,75 @@
-# config/settings/development.py
-from .base import *
-from decouple import config
+"""
+Development settings for local development.
+"""
 
+from .base import *
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key-change-me')
+
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0').split(',')
+# CORS settings for development
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
 
-# Only allow all origins in development
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+# Email backend for development
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-if DEBUG:
+# Disable SSL in development
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
+# Django Debug Toolbar (Optional)
+try:
+    import debug_toolbar
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
     INTERNAL_IPS = ['127.0.0.1']
+except ImportError:
+    pass
 
-# ===============================
-# DATABASE OVERRIDE (if needed for dev)
-# ===============================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='crowdfunding_db'),
-        'USER': config('POSTGRES_USER', default='postgres'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default='postgres'),
-        'HOST': config('POSTGRES_HOST', default='127.0.0.1'),
-        'PORT': config('POSTGRES_PORT', default=5432, cast=int),
-    }
-}
+# Database configuration for development
+DATABASES['default']['CONN_MAX_AGE'] = 60
 
-# ===============================
-# CACHES (optional for dev)
-# ===============================
+# Cache configuration for development
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
     }
 }
 
-# ===============================
-# EMAIL BACKEND (console for dev)
-# ===============================
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Logging configuration for development
+LOGGING['loggers']['django.db.backends'] = {
+    'handlers': ['console'],
+    'level': 'DEBUG',
+    'propagate': False,
+}
+
+# Disable throttling in development
+REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
+REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {}
+
+# Simple JWT settings for development
+SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'] = timedelta(days=1)
+SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'] = timedelta(days=30)
+
+# Celery configuration for development
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+
+# API Documentation
+SPECTACULAR_SETTINGS['SERVERS'] = [{'url': 'http://localhost:8000'}]
+
+# Development-specific app settings
+APP_SETTINGS['INVESTMENT']['SANDBOX_MODE'] = True
+APP_SETTINGS['DEBUG'] = True

@@ -1,16 +1,17 @@
-from django.urls import path
-from .views import (
-    AccessRequestCreateView,
-    MyAccessRequestListView,
-    AdminAccessRequestApproveView,
-    AdminAccessRequestRejectView,
-    AdminAccessRequestRevokeView
-)
+"""
+Access Request URL Configuration
+Clean, organized routing with proper namespace
+"""
 
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import AccessRequestViewSet
+
+# Create router and register viewsets
+router = DefaultRouter()
+router.register(r'', AccessRequestViewSet, basename='access-request')
+
+# Custom URL patterns for additional actions
 urlpatterns = [
-    path('', AccessRequestCreateView.as_view(), name='access-request-create'),
-    path('my/', MyAccessRequestListView.as_view(), name='access-request-my'),
-    path('admin/<uuid:id>/approve/', AdminAccessRequestApproveView.as_view(), name='access-request-approve'),
-    path('admin/<uuid:id>/reject/', AdminAccessRequestRejectView.as_view(), name='access-request-reject'),
-    path('admin/<uuid:id>/revoke/', AdminAccessRequestRevokeView.as_view(), name='access-request-revoke'),
+    path('', include(router.urls)),
 ]

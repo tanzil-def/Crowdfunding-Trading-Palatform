@@ -1,6 +1,6 @@
 from .models import Notification
 
-def create_notification(user, type, message):
+def send_notification(user, type, message):
     """
     Central function to create notifications for any user.
     """

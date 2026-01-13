@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.db.models import Sum, F
 from apps.projects.models import Project
-from apps.investments.models import SharePurchase
+from apps.investments.models import Investment
 from apps.favorites.models import Favorite
 from apps.notifications.models import Notification
 from apps.users.models import User
@@ -11,6 +11,8 @@ def get_unread_notifications_count(user):
     """
     Returns count of unread notifications for the given user.
     """
+    if not user:
+        return 0
     return Notification.objects.filter(user=user, is_read=False).count()
 
 
@@ -51,7 +53,8 @@ def get_investor_dashboard(investor):
     - favorite projects
     - unread notifications
     """
-    purchases = SharePurchase.objects.filter(investor=investor)
+    # Use Investment instead of SharePurchase
+    purchases = Investment.objects.filter(investor=investor)
     total_investments = purchases.count()
     portfolio_value = purchases.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
     favorite_projects = Favorite.objects.filter(investor=investor).count()
@@ -76,8 +79,10 @@ def get_admin_dashboard():
     """
     total_projects = Project.objects.count()
     pending_projects = Project.objects.filter(status='PENDING').count()
-    total_investments = SharePurchase.objects.count()
-    total_revenue = SharePurchase.objects.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    
+    # Use Investment instead of SharePurchase
+    total_investments = Investment.objects.count()
+    total_revenue = Investment.objects.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
 
     # Fetch first admin user for notifications
     admin_user = User.objects.filter(role='ADMIN').first()

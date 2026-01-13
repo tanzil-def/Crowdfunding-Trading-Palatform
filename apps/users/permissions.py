@@ -1,86 +1,76 @@
-# apps/users/permissions.py
+from rest_framework import permissions
 
-from rest_framework.permissions import BasePermission
 
-class IsAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_admin
-
-class IsDeveloper(BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_developer
-
-class IsInvestor(BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_investor
-
-class IsVerified(BasePermission):
-    """For future: Block unverified investors from investing/access requests."""
+class IsVerifiedUser(permissions.BasePermission):
+    """
+    Permission to check if user is verified
+    SRS: Unverified investors cannot invest or request restricted access
+    """
+    
+    message = 'Email verification required for this action.'
+    
     def has_permission(self, request, view):
         return request.user and request.user.is_verified
 
-class IsVerified(BasePermission):
+
+class IsAdminUser(permissions.BasePermission):
     """
-    Allows access only to users with verified email.
+    Permission to check if user is admin
     """
+    
+    message = 'Admin access required.'
+    
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.is_email_verified
-        )
+        return request.user and request.user.is_admin
 
 
-class IsRole(BasePermission):
+class IsDeveloperUser(permissions.BasePermission):
     """
-    Generic role-based permission.
-    Pass a list of allowed roles when initializing.
-    Example: IsRole(['DEVELOPER', 'INVESTOR'])
+    Permission to check if user is developer
     """
-    def __init__(self, allowed_roles):
-        self.allowed_roles = allowed_roles
-
+    
+    message = 'Developer access required.'
+    
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in self.allowed_roles
-        )
+        return request.user and request.user.is_developer
 
 
-# Specific roles for convenience and clarity
-class IsAdmin(BasePermission):
+class IsInvestorUser(permissions.BasePermission):
     """
-    Allows access only to ADMIN users.
+    Permission to check if user is investor
     """
+    
+    message = 'Investor access required.'
+    
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == 'ADMIN'
-        )
+        return request.user and request.user.is_investor
 
 
-class IsDeveloper(BasePermission):
+class CanInvest(permissions.BasePermission):
     """
-    Allows access only to DEVELOPER users.
+    Combined permission for investment actions
+    SRS: Must be verified investor and not banned
     """
+    
+    message = 'You must be a verified investor to invest.'
+    
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == 'DEVELOPER'
-        )
+        user = request.user
+        return (user and user.is_authenticated and 
+                user.is_investor and user.is_verified and 
+                user.is_active and not user.is_banned)
 
 
-class IsInvestor(BasePermission):
+class CanCreateProject(permissions.BasePermission):
     """
-    Allows access only to INVESTOR users.
+    Permission for project creation
+    SRS: Only developers can create projects
     """
+    
+    message = 'Only developers can create projects.'
+    
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == 'INVESTOR'
-        )
-
+        user = request.user
+        return (user and user.is_authenticated and 
+                user.is_developer and user.is_verified and 
+                user.is_active and not user.is_banned)
