@@ -174,15 +174,26 @@ SIMPLE_JWT = {
 }
 
 # ===============================
-# EMAIL CONFIG
+# EMAIL CONFIGURATION
 # ===============================
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST")
-EMAIL_PORT = config("EMAIL_PORT", cast=int)
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = f"Crowdfunding Platform <{EMAIL_HOST_USER}>"
+# Environment-based email backend
+# - Development: Prints emails to console for easy testing
+# - Production: Sends real emails via SMTP
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = config("EMAIL_HOST")
+    EMAIL_PORT = config("EMAIL_PORT", cast=int)
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+
+# Common email settings for both environments
+DEFAULT_FROM_EMAIL = config(
+    "DEFAULT_FROM_EMAIL",
+    default=f"Crowdfunding Platform <noreply@crowdfunding.com>"
+)
 
 # ===============================
 # FRONTEND URL
@@ -190,7 +201,10 @@ DEFAULT_FROM_EMAIL = f"Crowdfunding Platform <{EMAIL_HOST_USER}>"
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
 
 # ===============================
-# TOKEN EXPIRY
+# TOKEN EXPIRY SETTINGS
 # ===============================
-EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 60
-PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 60
+# Email verification token validity (in minutes)
+EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 30
+
+# Password reset token validity (in minutes)
+PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 15

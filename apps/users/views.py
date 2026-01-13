@@ -14,26 +14,20 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from drf_spectacular.utils import extend_schema, OpenApiExample
+
 from .models import User
 from .serializers import (
     RegisterSerializer,
     LoginSerializer,
     UserSerializer,
+    EmailVerificationSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
     LogoutSerializer
 )
 
-# ===============================
-# EMAIL VERIFICATION SERIALIZER
-# ===============================
-class EmailVerificationSerializer(serializers.Serializer):
-    token = serializers.UUIDField(required=True)
 
-
-# ===============================
-# REGISTER
-# ===============================
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
@@ -41,6 +35,7 @@ class RegisterView(generics.CreateAPIView):
     def perform_create(self, serializer):
         user = serializer.save()
         self.send_verification_email(user)
+        self.user = user
 
     def send_verification_email(self, user):
         token = str(uuid.uuid4())
@@ -50,7 +45,7 @@ class RegisterView(generics.CreateAPIView):
         )
         user.save()
 
-        verify_url = f"{settings.FRONTEND_URL}/verify-email/?token={token}&email={user.email}"
+        verify_url = f"{settings.FRONTEND_URL}/verify-email/?token={token}"
 
         send_mail(
             subject="Welcome to Crowdfunding Platform – Verify Your Email",
@@ -74,18 +69,22 @@ Crowdfunding Team
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
+        
         return Response(
             {
                 "success": True,
-                "message": "Registration successful. Verification email sent."
+                "message": "Registration successful. Verification email sent.",
+                "data": {
+                    "name": self.user.name,
+                    "email": self.user.email,
+                    "role": self.user.role,
+                    "verification_token": self.user.verification_token
+                }
             },
             status=status.HTTP_201_CREATED
         )
 
 
-# ===============================
-# LOGIN
-# ===============================
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [AllowAny]
@@ -125,9 +124,6 @@ class LoginView(generics.GenericAPIView):
         )
 
 
-# ===============================
-# LOGOUT
-# ===============================
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -148,19 +144,24 @@ class LogoutView(APIView):
             )
 
 
-# ===============================
-# EMAIL VERIFICATION
-# ===============================
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=EmailVerificationSerializer,
+        responses={200: {"type": "object", "properties": {
+            "success": {"type": "boolean"},
+            "message": {"type": "string"}
+        }}},
+        examples=[
+            OpenApiExample(
+                'Verify Email Request',
+                value={"token": "dd97b1a1-dffc-4853-baa9-a8a9870e16f8"},
+                request_only=True,
+            )
+        ]
+    )
     def post(self, request):
-        """
-        Request Body (JSON):
-        {
-            "token": "dd97b1a1-dffc-4853-baa9-a8a9870e16f8"
-        }
-        """
         serializer = EmailVerificationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -185,9 +186,6 @@ class VerifyEmailView(APIView):
         )
 
 
-# ===============================
-# PASSWORD RESET REQUEST
-# ===============================
 class PasswordResetRequestView(generics.GenericAPIView):
     serializer_class = PasswordResetRequestSerializer
     permission_classes = [AllowAny]
@@ -197,6 +195,8 @@ class PasswordResetRequestView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = User.objects.filter(email=serializer.validated_data['email']).first()
+        token = None
+        
         if user:
             token = str(uuid.uuid4())
             user.password_reset_token = token
@@ -205,7 +205,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
             )
             user.save()
 
-            reset_url = f"{settings.FRONTEND_URL}/reset-password/?token={token}&email={user.email}"
+            reset_url = f"{settings.FRONTEND_URL}/reset-password/?token={token}"
 
             send_mail(
                 subject="Reset Your Crowdfunding Account Password",
@@ -217,7 +217,7 @@ We received a password reset request for your Crowdfunding Platform account.
 Click below to reset your password:
 {reset_url}
 
-If you didn’t request this, ignore this email.
+If you didn't request this, ignore this email.
 
 Thanks,
 Crowdfunding Team
@@ -228,13 +228,14 @@ Crowdfunding Team
             )
 
         return Response(
-            {"success": True, "message": "If email exists, password reset link sent."}
+            {
+                "success": True,
+                "message": "If email exists, password reset link sent.",
+                "token": token
+            }
         )
 
 
-# ===============================
-# PASSWORD RESET CONFIRM
-# ===============================
 class PasswordResetConfirmView(generics.GenericAPIView):
     serializer_class = PasswordResetConfirmSerializer
     permission_classes = [AllowAny]

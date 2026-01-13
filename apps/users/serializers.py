@@ -36,7 +36,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class EmailVerificationSerializer(serializers.Serializer):
-    token = serializers.CharField(required=True)
+    token = serializers.UUIDField(required=True)
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -44,7 +44,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    token = serializers.CharField(required=True)
+    token = serializers.UUIDField(required=True)
     password = serializers.CharField(write_only=True, validators=[validate_password])
 
 
