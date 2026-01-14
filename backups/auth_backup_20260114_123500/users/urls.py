@@ -1,0 +1,80 @@
+from django.urls import path
+from .views import (
+    UserRegistrationView,
+    GoogleOAuthLoginView,
+    LoginView,
+    LogoutView,
+    EmailVerificationView,
+    ResendVerificationEmailView,
+    PasswordResetRequestView,
+    PasswordResetConfirmView,
+    UserProfileView,
+    UserProfileUpdateView,
+    ChangePasswordView,
+    TokenRefreshAPIView
+)
+
+app_name = 'users'
+
+urlpatterns = [
+    path(
+        'register/',
+        UserRegistrationView.as_view(),
+        name='register'
+    ),
+    path(
+        'google/',
+        GoogleOAuthLoginView.as_view(),
+        name='google-oauth'
+    ),
+    path(
+        'login/',
+        LoginView.as_view(),
+        name='login'
+    ),
+    path(
+        'logout/',
+        LogoutView.as_view(),
+        name='logout'
+    ),
+    path(
+        'verify-email/',
+        EmailVerificationView.as_view(),
+        name='verify-email'
+    ),
+    path(
+        'resend-verification/',
+        ResendVerificationEmailView.as_view(),
+        name='resend-verification'
+    ),
+    path(
+        'password-reset/',
+        PasswordResetRequestView.as_view(),
+        name='password-reset'
+    ),
+    path(
+        'password-reset-confirm/',
+        PasswordResetConfirmView.as_view(),
+        name='password-reset-confirm'
+    ),
+    path(
+        'profile/',
+        UserProfileView.as_view(),
+        name='profile'
+    ),
+    path(
+        'profile/update/',
+        UserProfileUpdateView.as_view(),
+        name='profile-update'
+    ),
+    path(
+        'change-password/',
+        ChangePasswordView.as_view(),
+        name='change-password'
+    ),
+    path(
+        'token/refresh/',
+        TokenRefreshAPIView.as_view(),
+        name='token-refresh'
+    ),
+]

@@ -4,17 +4,18 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
 
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView
+)
 
 urlpatterns = [
-    # Root redirect to Swagger
     path('', lambda request: redirect('swagger-ui', permanent=False)),
-
-    # Admin
+    
     path('admin/', admin.site.urls),
-
-    # API v1
-    path('api/v1/auth/', include(('apps.users.urls', 'users'), namespace='auth')),
+    
+    path('api/v1/auth/', include('apps.users.urls')),
     path('api/v1/projects/', include('apps.projects.urls')),
     path('api/v1/access-requests/', include('apps.access_requests.urls')),
     path('api/v1/favorites/', include('apps.favorites.urls')),
@@ -22,8 +23,7 @@ urlpatterns = [
     path('api/v1/notifications/', include('apps.notifications.urls')),
     path('api/v1/dashboard/', include('apps.dashboard.urls')),
     path('api/v1/audit/', include('apps.audit.urls')),
-
-    # Schema & Docs
+    
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
@@ -32,7 +32,7 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
+    
     if 'debug_toolbar' in settings.INSTALLED_APPS:
         import debug_toolbar
         urlpatterns = [path('__debug__/', include(debug_toolbar.urls))] + urlpatterns
