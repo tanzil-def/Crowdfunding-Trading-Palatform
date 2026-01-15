@@ -11,7 +11,7 @@ from .serializers import (
 from .permissions import IsInvestor
 
 
-# POST /favorites/
+
 class FavoriteCreateView(generics.CreateAPIView):
     serializer_class = FavoriteCreateSerializer
     permission_classes = [IsAuthenticated, IsInvestor]
@@ -27,7 +27,7 @@ class FavoriteCreateView(generics.CreateAPIView):
         }, status=status.HTTP_201_CREATED)
 
 
-# GET /favorites/
+
 class FavoriteListView(generics.ListAPIView):
     serializer_class = FavoriteListSerializer
     permission_classes = [IsAuthenticated, IsInvestor]
