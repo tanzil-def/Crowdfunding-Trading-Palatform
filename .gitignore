@@ -1,9 +1,29 @@
+# Python
 venv/
-*.pyc
 __pycache__/
+*.pyc
+*.pyo
+
+# Editor / OS
 *.swp
+.DS_Store
+.vscode/
+.idea/
+
+# Django
 db.sqlite3
-*.dump
-.env
-*.env
 media/
+staticfiles/
+
+# Environment variables
+.env
+.env.*
+
+# Backups & dumps
+backups/
+*.dump
+*.sql
+*.json
+
+# Random junk
+et --hard*
