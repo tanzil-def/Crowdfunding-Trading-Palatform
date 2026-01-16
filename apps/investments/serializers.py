@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from decimal import Decimal
 from .models import SharePurchase, PaymentTransaction
+from utils.exceptions import ResourceConflictError
 
 
 class InitiateInvestmentSerializer(serializers.Serializer):
@@ -28,10 +29,11 @@ class InitiateInvestmentSerializer(serializers.Serializer):
     def validate_idempotency_key(self, value):
         """
         Ensure idempotency key is unique.
+        Raises 409 Conflict if already exists.
         """
         if PaymentTransaction.objects.filter(reference_id=value).exists():
-            raise serializers.ValidationError(
-                "Duplicate transaction detected. Please use a unique idempotency key."
+            raise ResourceConflictError(
+                f"Duplicate transaction detected for key: {value}"
             )
         return value
 

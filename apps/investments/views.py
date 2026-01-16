@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, APIException
 
 from .serializers import (
     InitiateInvestmentSerializer,
@@ -63,10 +63,20 @@ class InvestmentInitiateView(generics.GenericAPIView):
                 status_code=status.HTTP_201_CREATED
             )
 
-        except ValidationError as e:
+        except (ValidationError, APIException) as e:
+            status_code = getattr(e, 'status_code', status.HTTP_400_BAD_REQUEST)
+            detail = getattr(e, 'detail', str(e))
+            if isinstance(detail, dict):
+                message = detail.get('detail', "Validation error")
+                errors = detail
+            else:
+                message = str(detail)
+                errors = None
+                
             return error_response(
-                message=str(e),
-                status_code=status.HTTP_400_BAD_REQUEST
+                message=message,
+                errors=errors,
+                status_code=status_code
             )
 
 
@@ -111,10 +121,20 @@ class PaymentCallbackView(generics.GenericAPIView):
                 status_code=status.HTTP_200_OK
             )
 
-        except ValidationError as e:
+        except (ValidationError, APIException) as e:
+            status_code = getattr(e, 'status_code', status.HTTP_400_BAD_REQUEST)
+            detail = getattr(e, 'detail', str(e))
+            if isinstance(detail, dict):
+                message = detail.get('detail', "Validation error")
+                errors = detail
+            else:
+                message = str(detail)
+                errors = None
+
             return error_response(
-                message=str(e),
-                status_code=status.HTTP_400_BAD_REQUEST
+                message=message,
+                errors=errors,
+                status_code=status_code
             )
 
 

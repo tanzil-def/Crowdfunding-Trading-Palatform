@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError
 
 from .models import SharePurchase, PaymentTransaction
 from apps.projects.models import Project
+from utils.exceptions import UnverifiedUserError, ResourceConflictError
 
 # Import audit logging
 try:
@@ -30,7 +31,7 @@ def validate_investor_eligibility(investor):
     SRS: Unverified investors cannot invest.
     """
     if not investor.is_email_verified:
-        raise ValidationError(
+        raise UnverifiedUserError(
             "Email verification required. Please verify your email before investing."
         )
     
@@ -99,6 +100,11 @@ def initiate_investment(project, investor, shares_requested, idempotency_key):
         check_share_availability(project_locked, shares_requested)
         total_amount = calculate_investment_amount(project_locked, shares_requested)
         
+        if PaymentTransaction.objects.filter(reference_id=idempotency_key).exists():
+            raise ResourceConflictError(
+                f"Transaction with reference {idempotency_key} already exists."
+            )
+
         payment = PaymentTransaction.objects.create(
             reference_id=idempotency_key,
             investor=investor,
@@ -274,7 +280,7 @@ def confirm_payment(payment_reference_id, gateway_payload, success=True):
         raise ValidationError(f"Payment transaction not found: {payment_reference_id}")
     
     if payment.status != PaymentTransaction.STATUS_INITIATED:
-        raise ValidationError(
+        raise ResourceConflictError(
             f"Payment already processed with status: {payment.get_status_display()}"
         )
     

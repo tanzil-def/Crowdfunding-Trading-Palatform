@@ -60,7 +60,6 @@ class PaymentTransaction(models.Model):
     )
     failure_reason = models.TextField(
         blank=True,
-        null=True,
         help_text="Reason for payment failure if applicable"
     )
     created_at = models.DateTimeField(auto_now_add=True)
