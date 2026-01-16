@@ -8,11 +8,31 @@ from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User, EmailVerificationToken, PasswordResetToken
+from utils.exceptions import (
+    AuthenticationFailedError, 
+    UnverifiedUserError, 
+    PermissionDeniedError,
+    NotFoundError,
+    ResourceConflictError
+)
 
 
 def generate_secure_token():
     """Generate a cryptographically secure token"""
     return secrets.token_urlsafe(48)
+
+
+def register_user(validated_data):
+    """
+    Register a new user and initiate email verification.
+    SRS: Registration sends verification email.
+    """
+    if User.objects.filter(email=validated_data['email'].lower()).exists():
+        raise ResourceConflictError("A user with this email already exists.")
+        
+    user = User.objects.create_user(**validated_data)
+    send_verification_email(user)
+    return user
 
 
 def create_verification_token(user):
@@ -78,7 +98,7 @@ def verify_email_token(token_str):
             is_used=False
         )
     except EmailVerificationToken.DoesNotExist:
-        raise ValidationError("Invalid or expired verification token")
+        raise NotFoundError("Invalid or expired verification token")
     
     if token.expires_at < timezone.now():
         raise ValidationError("Verification token has expired")
@@ -148,7 +168,7 @@ def reset_password_with_token(token_str, new_password):
             is_used=False
         )
     except PasswordResetToken.DoesNotExist:
-        raise ValidationError("Invalid or expired reset token")
+        raise NotFoundError("Invalid or expired reset token")
     
     if token.expires_at < timezone.now():
         raise ValidationError("Reset token has expired")
@@ -171,10 +191,10 @@ def authenticate_user(email, password):
     user = authenticate(username=email.lower(), password=password)
     
     if not user:
-        raise ValidationError("Invalid email or password")
+        raise AuthenticationFailedError("Invalid email or password")
     
     if not user.is_active:
-        raise ValidationError("Account is inactive")
+        raise PermissionDeniedError("Account is inactive")
     
     return user
 
@@ -190,6 +210,18 @@ def generate_tokens_for_user(user):
         'access': str(refresh.access_token),
         'refresh': str(refresh)
     }
+
+
+def logout_user(refresh_token):
+    """
+    Logout user by blacklisting refresh token.
+    SRS: Secure logout with session invalidation.
+    """
+    try:
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+    except Exception:
+        raise ValidationError("Invalid or already blacklisted token")
 
 
 def authenticate_google_oauth(google_token, role=User.ROLE_INVESTOR):
@@ -239,4 +271,4 @@ def authenticate_google_oauth(google_token, role=User.ROLE_INVESTOR):
         return user
         
     except Exception as e:
-        raise ValidationError(f"Google authentication failed: {str(e)}")
+        raise AuthenticationFailedError(f"Google authentication failed: {str(e)}")
