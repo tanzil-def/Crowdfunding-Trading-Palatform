@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from decimal import Decimal, ROUND_HALF_UP
+from django.core.validators import MinValueValidator
 from .models import Project, ProjectMedia
 from .services import calculate_share_price, validate_media, filter_restricted_fields
 
@@ -7,6 +9,13 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating new projects by developers.
     """
+    total_project_value = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal('0.01')
+    )
+    total_shares = serializers.IntegerField(min_value=1)
+
     class Meta:
         model = Project
         fields = (
@@ -19,10 +28,14 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context["request"].user
         validated_data["developer"] = user
-        validated_data["share_price"] = calculate_share_price(
+        
+        # Ensure share_price calculation is precise and rounded
+        price = calculate_share_price(
             validated_data["total_project_value"],
             validated_data["total_shares"]
         )
+        validated_data["share_price"] = price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        
         return super().create(validated_data)
 
 

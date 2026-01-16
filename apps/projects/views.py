@@ -1,10 +1,11 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.exceptions import ValidationError, APIException
 
 from .models import Project, ProjectMedia
 from .serializers import (
@@ -19,6 +20,7 @@ from .services import (
     admin_approve_project, admin_reject_project, admin_request_changes
 )
 from utils.pagination import StandardResultsSetPagination
+from utils.responses import success_response, error_response
 
 
 class ProjectCreateView(generics.CreateAPIView):
@@ -54,6 +56,9 @@ class MyProjectListView(generics.ListAPIView):
     ordering = ['-created_at']
 
     def get_queryset(self):
+        # Industrial Standard: Handle schema generation for AnonymousUser
+        if getattr(self, "swagger_fake_view", False):
+            return Project.objects.none()
         return Project.objects.filter(developer=self.request.user)
 
 
@@ -66,6 +71,9 @@ class ProjectUpdateView(generics.UpdateAPIView):
     lookup_field = "id"
 
     def get_queryset(self):
+        # Industrial Standard: Handle schema generation for AnonymousUser
+        if getattr(self, "swagger_fake_view", False):
+            return Project.objects.none()
         return Project.objects.filter(developer=self.request.user)
 
     def perform_update(self, serializer):
@@ -90,16 +98,18 @@ class ProjectSubmitView(generics.GenericAPIView):
     """
     Submit a draft project for admin review.
     """
+    serializer_class = serializers.Serializer
     permission_classes = [IsAuthenticated, IsDeveloper, IsProjectOwner]
 
     def post(self, request, id):
         project = get_object_or_404(Project, id=id, developer=request.user)
-        submit_project_for_review(project)
-        
-        return Response({
-            "success": True,
-            "message": "Project submitted for review successfully"
-        })
+        try:
+            submit_project_for_review(project)
+            return success_response(message="Project submitted for review successfully")
+        except (ValidationError, APIException) as e:
+            status_code = getattr(e, 'status_code', status.HTTP_400_BAD_REQUEST)
+            detail = getattr(e, 'detail', str(e))
+            return error_response(message=str(detail), status_code=status_code)
 
 
 class ProjectMediaUploadView(generics.CreateAPIView):
@@ -181,50 +191,56 @@ class AdminProjectApproveView(generics.GenericAPIView):
     """
     Approve a pending project.
     """
+    serializer_class = serializers.Serializer
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, id):
         project = get_object_or_404(Project, id=id)
-        admin_approve_project(project, request.user)
-        
-        return Response({
-            "success": True,
-            "message": "Project approved successfully"
-        })
+        try:
+            admin_approve_project(project, request.user)
+            return success_response(message="Project approved successfully")
+        except (ValidationError, APIException) as e:
+            status_code = getattr(e, 'status_code', status.HTTP_400_BAD_REQUEST)
+            detail = getattr(e, 'detail', str(e))
+            return error_response(message=str(detail), status_code=status_code)
 
 
 class AdminProjectRejectView(generics.GenericAPIView):
     """
     Reject a pending project with optional reason.
     """
+    serializer_class = serializers.Serializer
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, id):
         project = get_object_or_404(Project, id=id)
         reason = request.data.get('reason')
-        admin_reject_project(project, request.user, reason)
-        
-        return Response({
-            "success": True,
-            "message": "Project rejected successfully"
-        })
+        try:
+            admin_reject_project(project, request.user, reason)
+            return success_response(message="Project rejected successfully")
+        except (ValidationError, APIException) as e:
+            status_code = getattr(e, 'status_code', status.HTTP_400_BAD_REQUEST)
+            detail = getattr(e, 'detail', str(e))
+            return error_response(message=str(detail), status_code=status_code)
 
 
 class AdminProjectRequestChangesView(generics.GenericAPIView):
     """
     Request changes on a pending project with optional note.
     """
+    serializer_class = serializers.Serializer
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, id):
         project = get_object_or_404(Project, id=id)
         note = request.data.get('note')
-        admin_request_changes(project, request.user, note)
-        
-        return Response({
-            "success": True,
-            "message": "Changes requested successfully"
-        })
+        try:
+            admin_request_changes(project, request.user, note)
+            return success_response(message="Changes requested successfully")
+        except (ValidationError, APIException) as e:
+            status_code = getattr(e, 'status_code', status.HTTP_400_BAD_REQUEST)
+            detail = getattr(e, 'detail', str(e))
+            return error_response(message=str(detail), status_code=status_code)
 
 
 class InvestorProjectBrowseView(generics.ListAPIView):
