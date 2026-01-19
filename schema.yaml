@@ -1,0 +1,3084 @@
+openapi: 3.0.3
+info:
+  title: Crowdfunding Trading Platform API
+  version: 1.0.0
+  description: Share-based crowdfunding platform with role-based access control
+paths:
+  /api/v1/access-requests/:
+    post:
+      operationId: access_requests_create
+      tags:
+      - access-requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessRequestCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AccessRequestCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AccessRequestCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestCreate'
+          description: ''
+  /api/v1/access-requests/admin/{id}/approve/:
+    post:
+      operationId: access_requests_admin_approve_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - access-requests
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestActionResponse'
+          description: ''
+  /api/v1/access-requests/admin/{id}/reject/:
+    post:
+      operationId: access_requests_admin_reject_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - access-requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminAccessRequestActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminAccessRequestActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminAccessRequestActionRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestActionResponse'
+          description: ''
+  /api/v1/access-requests/admin/{id}/revoke/:
+    post:
+      operationId: access_requests_admin_revoke_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - access-requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminAccessRequestActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminAccessRequestActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminAccessRequestActionRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRequestActionResponse'
+          description: ''
+  /api/v1/access-requests/my/:
+    get:
+      operationId: access_requests_my_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - access-requests
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAccessRequestListList'
+          description: ''
+  /api/v1/audit/admin/audit-logs/:
+    get:
+      operationId: audit_admin_audit_logs_list
+      description: |-
+        GET /admin/audit-logs/
+        Admin-only view to list all audit logs.
+        Supports pagination.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - audit
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditLogList'
+          description: ''
+  /api/v1/auth/google/:
+    post:
+      operationId: auth_google_create
+      description: |-
+        POST /api/v1/auth/google/
+
+        Authenticate via Google OAuth.
+
+        SRS Requirements:
+        - OAuth support
+        - Auto email verification
+        - Returns JWT tokens
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleOAuthRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GoogleOAuthRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GoogleOAuthRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoogleOAuth'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        POST /api/v1/auth/login/
+
+        Login with email and password.
+
+        SRS Requirements:
+        - Email and password authentication
+        - Returns JWT access and refresh tokens
+        - Works for all roles (Admin, Developer, Investor)
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLogin'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: |-
+        POST /api/v1/auth/logout/
+
+        Logout user by blacklisting refresh token.
+
+        SRS Requirements:
+        - Secure logout
+        - Session invalidation
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Logout'
+          description: ''
+  /api/v1/auth/password-reset/:
+    post:
+      operationId: auth_password_reset_create
+      description: |-
+        POST /api/v1/auth/password-reset/
+
+        Request password reset via email.
+
+        SRS Requirements:
+        - Users can reset password
+        - Reset link sent via email
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetRequest'
+          description: ''
+  /api/v1/auth/password-reset-confirm/:
+    post:
+      operationId: auth_password_reset_confirm_create
+      description: |-
+        POST /api/v1/auth/password-reset-confirm/
+
+        Confirm password reset with token and new password.
+
+        SRS Requirements:
+        - Secure password reset
+        - Token validation
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetConfirm'
+          description: ''
+  /api/v1/auth/profile/:
+    get:
+      operationId: auth_profile_retrieve
+      description: |-
+        GET /api/v1/auth/profile/
+
+        Get authenticated user's profile.
+
+        SRS Requirements:
+        - View own profile
+        - Shows role and verification status
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: |-
+        POST /api/v1/auth/register/
+
+        Register new user (Developer or Investor).
+
+        SRS Requirements:
+        - Email, password, first_name, last_name required
+        - Role selection (DEVELOPER or INVESTOR only)
+        - Email verification sent after registration
+        - Admin users created via backend only
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegistration'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/verify-email/:
+    post:
+      operationId: auth_verify_email_create
+      description: |-
+        POST /api/v1/auth/verify-email/
+
+        Verify email using token sent via email.
+
+        SRS Requirements:
+        - Email verification required
+        - Enables investment and restricted access features
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerification'
+          description: ''
+  /api/v1/dashboard/admin/:
+    get:
+      operationId: dashboard_admin_retrieve
+      tags:
+      - dashboard
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboard'
+          description: ''
+  /api/v1/dashboard/developer/:
+    get:
+      operationId: dashboard_developer_retrieve
+      tags:
+      - dashboard
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeveloperDashboard'
+          description: ''
+  /api/v1/dashboard/investor/:
+    get:
+      operationId: dashboard_investor_retrieve
+      tags:
+      - dashboard
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestorDashboard'
+          description: ''
+  /api/v1/favorites/:
+    post:
+      operationId: favorites_create
+      tags:
+      - favorites
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavoriteCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FavoriteCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FavoriteCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteCreate'
+          description: ''
+  /api/v1/favorites/{id}/:
+    delete:
+      operationId: favorites_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - favorites
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/favorites/list/:
+    get:
+      operationId: favorites_list_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - favorites
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFavoriteListList'
+          description: ''
+  /api/v1/investments/{id}/:
+    get:
+      operationId: investments_retrieve
+      description: |-
+        GET /api/v1/investments/{id}/
+
+        Retrieve detailed information about a specific investment.
+        Used for receipts and transaction details.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - investments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharePurchaseDetail'
+          description: ''
+  /api/v1/investments/admin/transactions/:
+    get:
+      operationId: investments_admin_transactions_list
+      description: |-
+        GET /api/v1/investments/admin/transactions/
+
+        Admin view of all payment transactions for audit purposes.
+
+        SRS Requirements:
+        - Admin can review all transactions
+        - Includes success and failures
+        - Audit trail support
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - investments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaymentTransactionList'
+          description: ''
+  /api/v1/investments/admin/transactions/{id}/:
+    get:
+      operationId: investments_admin_transactions_retrieve
+      description: |-
+        GET /api/v1/investments/admin/transactions/{id}/
+
+        Admin view of individual payment transaction details.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - investments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentTransaction'
+          description: ''
+  /api/v1/investments/initiate/:
+    post:
+      operationId: investments_initiate_create
+      description: |-
+        POST /api/v1/investments/initiate/
+
+        Initiate investment process for an approved project.
+
+        SRS Requirements:
+        - Email verification required
+        - Only approved projects
+        - Share availability check
+        - Idempotency support
+      tags:
+      - investments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateInvestmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InitiateInvestmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InitiateInvestmentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitiateInvestment'
+          description: ''
+  /api/v1/investments/my/:
+    get:
+      operationId: investments_my_list
+      description: |-
+        GET /api/v1/investments/my/
+
+        List all share purchases made by the authenticated investor.
+
+        SRS Requirements:
+        - Show investment history
+        - Include project details
+        - Ordered by most recent
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - investments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSharePurchaseListList'
+          description: ''
+  /api/v1/investments/payments/callback/:
+    post:
+      operationId: investments_payments_callback_create
+      description: |-
+        POST /api/v1/investments/payments/callback/
+
+        Payment gateway webhook endpoint.
+        Processes payment confirmations and creates share purchases.
+
+        SRS Requirements:
+        - Idempotent processing
+        - Prevents duplicate callbacks
+        - Atomic share allocation
+        - Audit logging
+
+        Note: This endpoint may need to allow unauthenticated requests
+        from payment gateway. Implement proper signature verification
+        in production.
+      tags:
+      - investments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCallbackRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentCallbackRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentCallbackRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentCallback'
+          description: ''
+  /api/v1/investments/portfolio/summary/:
+    get:
+      operationId: investments_portfolio_summary_retrieve
+      description: |-
+        GET /api/v1/investments/portfolio/summary/
+
+        Get investor's portfolio summary for dashboard.
+
+        SRS Requirements:
+        - Total invested amount
+        - Number of projects invested
+        - Total shares owned
+        - Investment count
+      tags:
+      - investments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioSummary'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/read/:
+    post:
+      operationId: notifications_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NotificationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/projects/:
+    post:
+      operationId: projects_create
+      description: Create a new project (Developer only).
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectCreate'
+          description: ''
+  /api/v1/projects/{id}/:
+    put:
+      operationId: projects_update
+      description: Update an existing project (only in DRAFT or NEEDS_CHANGES status).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectUpdate'
+          description: ''
+    patch:
+      operationId: projects_partial_update
+      description: Update an existing project (only in DRAFT or NEEDS_CHANGES status).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectUpdate'
+          description: ''
+  /api/v1/projects/{id}/detail/:
+    get:
+      operationId: projects_detail_retrieve
+      description: |-
+        View detailed information about an approved project.
+        Restricted fields are filtered based on access permissions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestorProjectDetail'
+          description: ''
+  /api/v1/projects/{id}/media/:
+    post:
+      operationId: projects_media_create
+      description: Upload media (image or 3D model) to a project.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectMediaUploadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectMediaUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMediaUpload'
+          description: ''
+  /api/v1/projects/{id}/media/list/:
+    get:
+      operationId: projects_media_list_list
+      description: |-
+        List all media for a specific project.
+        Filters out restricted media based on user permissions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectMediaListList'
+          description: ''
+  /api/v1/projects/{id}/submit/:
+    post:
+      operationId: projects_submit_create
+      description: Submit a draft project for admin review.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectActionResponse'
+          description: ''
+  /api/v1/projects/admin/projects/{id}/approve/:
+    post:
+      operationId: projects_admin_projects_approve_create
+      description: Approve a pending project.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectActionResponse'
+          description: ''
+  /api/v1/projects/admin/projects/{id}/reject/:
+    post:
+      operationId: projects_admin_projects_reject_create
+      description: Reject a pending project with optional reason.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRejectRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectRejectRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectRejectRequestRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectActionResponse'
+          description: ''
+  /api/v1/projects/admin/projects/{id}/request-changes/:
+    post:
+      operationId: projects_admin_projects_request_changes_create
+      description: Request changes on a pending project with optional note.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectChangesRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectChangesRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectChangesRequestRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectActionResponse'
+          description: ''
+  /api/v1/projects/admin/projects/pending/:
+    get:
+      operationId: projects_admin_projects_pending_list
+      description: List all projects pending admin review.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminProjectListList'
+          description: ''
+  /api/v1/projects/browse/:
+    get:
+      operationId: projects_browse_list
+      description: |-
+        Browse all approved projects (Investor only).
+        Supports filtering, search, and ordering.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvestorProjectListList'
+          description: ''
+  /api/v1/projects/compare/:
+    get:
+      operationId: projects_compare_list
+      description: |-
+        Compare multiple approved projects side-by-side.
+        Accepts comma-separated project IDs via 'ids' query parameter.
+        Example: /api/v1/projects/compare/?ids=uuid1,uuid2,uuid3
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvestorProjectListList'
+          description: ''
+  /api/v1/projects/my/:
+    get:
+      operationId: projects_my_list
+      description: List all projects created by the authenticated developer.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - APPROVED
+          - ARCHIVED
+          - DRAFT
+          - NEEDS_CHANGES
+          - PENDING
+          - REJECTED
+        description: |-
+          * `DRAFT` - Draft
+          * `PENDING` - Pending Review
+          * `APPROVED` - Approved
+          * `REJECTED` - Rejected
+          * `NEEDS_CHANGES` - Needs Changes
+          * `ARCHIVED` - Archived
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectListList'
+          description: ''
+components:
+  schemas:
+    AccessRequestActionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+      - message
+      - success
+    AccessRequestCreate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status2a0Enum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - project
+      - status
+    AccessRequestCreateRequest:
+      type: object
+      properties:
+        project:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          nullable: true
+      required:
+      - project
+    AccessRequestList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+        project_title:
+          type: string
+        status:
+          $ref: '#/components/schemas/Status2a0Enum'
+        reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - project
+      - project_title
+    AdminAccessRequestActionRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+    AdminDashboard:
+      type: object
+      properties:
+        total_projects:
+          type: integer
+        pending_projects:
+          type: integer
+        total_investments:
+          type: integer
+        total_revenue:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        unread_notifications:
+          type: integer
+      required:
+      - pending_projects
+      - total_investments
+      - total_projects
+      - total_revenue
+      - unread_notifications
+    AdminProjectList:
+      type: object
+      description: Serializer for admin project listing.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        category:
+          type: string
+          maxLength: 100
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        developer_email:
+          type: string
+          format: email
+          readOnly: true
+        developer_name:
+          type: string
+          readOnly: true
+        total_project_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_shares:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+        share_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - developer_email
+      - developer_name
+      - duration_days
+      - id
+      - title
+      - total_project_value
+      - total_shares
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+        entity_type:
+          type: string
+          readOnly: true
+        entity_id:
+          type: string
+          format: uuid
+          readOnly: true
+        metadata:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor_email
+      - created_at
+      - entity_id
+      - entity_type
+      - id
+      - metadata
+    AuthProviderEnum:
+      enum:
+      - LOCAL
+      - GOOGLE
+      type: string
+      description: |-
+        * `LOCAL` - Email/Password
+        * `GOOGLE` - Google OAuth
+    DeveloperDashboard:
+      type: object
+      properties:
+        total_projects:
+          type: integer
+        total_shares_sold:
+          type: integer
+        total_investment_received:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        pending_projects:
+          type: integer
+        unread_notifications:
+          type: integer
+      required:
+      - pending_projects
+      - total_investment_received
+      - total_projects
+      - total_shares_sold
+      - unread_notifications
+    EmailVerification:
+      type: object
+      description: |-
+        Email verification serializer.
+        SRS: Email verification required.
+      properties:
+        token:
+          type: string
+          maxLength: 64
+      required:
+      - token
+    EmailVerificationRequest:
+      type: object
+      description: |-
+        Email verification serializer.
+        SRS: Email verification required.
+      properties:
+        token:
+          type: string
+          minLength: 1
+          maxLength: 64
+      required:
+      - token
+    FavoriteCreate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - project
+    FavoriteCreateRequest:
+      type: object
+      properties:
+        project:
+          type: string
+          format: uuid
+      required:
+      - project
+    FavoriteList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+        project_title:
+          type: string
+        project_category:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - project
+      - project_category
+      - project_title
+    GoogleOAuth:
+      type: object
+      description: |-
+        Google OAuth serializer.
+        SRS: Support OAuth authentication.
+      properties:
+        token:
+          type: string
+        role:
+          allOf:
+          - $ref: '#/components/schemas/GoogleOAuthRoleEnum'
+          default: INVESTOR
+      required:
+      - token
+    GoogleOAuthRequest:
+      type: object
+      description: |-
+        Google OAuth serializer.
+        SRS: Support OAuth authentication.
+      properties:
+        token:
+          type: string
+          minLength: 1
+        role:
+          allOf:
+          - $ref: '#/components/schemas/GoogleOAuthRoleEnum'
+          default: INVESTOR
+      required:
+      - token
+    GoogleOAuthRoleEnum:
+      enum:
+      - DEVELOPER
+      - INVESTOR
+      type: string
+      description: |-
+        * `DEVELOPER` - DEVELOPER
+        * `INVESTOR` - INVESTOR
+    InitiateInvestment:
+      type: object
+      description: |-
+        Serializer for initiating investment process.
+        Validates input before creating payment transaction.
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        shares_requested:
+          type: integer
+          minimum: 1
+        idempotency_key:
+          type: string
+          maxLength: 255
+      required:
+      - idempotency_key
+      - project_id
+      - shares_requested
+    InitiateInvestmentRequest:
+      type: object
+      description: |-
+        Serializer for initiating investment process.
+        Validates input before creating payment transaction.
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        shares_requested:
+          type: integer
+          minimum: 1
+        idempotency_key:
+          type: string
+          minLength: 1
+          maxLength: 255
+      required:
+      - idempotency_key
+      - project_id
+      - shares_requested
+    InvestmentStatus:
+      enum:
+      - INITIATED
+      - SUCCESS
+      - FAILED
+      type: string
+      description: |-
+        * `INITIATED` - Payment Initiated
+        * `SUCCESS` - Payment Successful
+        * `FAILED` - Payment Failed
+    InvestorDashboard:
+      type: object
+      properties:
+        total_investments:
+          type: integer
+        portfolio_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        favorite_projects:
+          type: integer
+        unread_notifications:
+          type: integer
+      required:
+      - favorite_projects
+      - portfolio_value
+      - total_investments
+      - unread_notifications
+    InvestorProjectDetail:
+      type: object
+      description: |-
+        Serializer for investor project detail view.
+        Handles restricted field filtering.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        category:
+          type: string
+          maxLength: 100
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        total_project_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_shares:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+        share_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        shares_sold:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        remaining_shares:
+          type: integer
+          readOnly: true
+        funding_percentage:
+          type: number
+          format: double
+          readOnly: true
+        restricted_fields: {}
+        is_3d_restricted:
+          type: boolean
+        has_access:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - description
+      - duration_days
+      - funding_percentage
+      - has_access
+      - id
+      - remaining_shares
+      - title
+      - total_project_value
+      - total_shares
+    InvestorProjectList:
+      type: object
+      description: Serializer for investor project browsing/listing.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        category:
+          type: string
+          maxLength: 100
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        total_project_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_shares:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+        share_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        shares_sold:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        remaining_shares:
+          type: integer
+          readOnly: true
+        funding_percentage:
+          type: number
+          format: double
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - duration_days
+      - funding_percentage
+      - id
+      - remaining_shares
+      - title
+      - total_project_value
+      - total_shares
+    Logout:
+      type: object
+      properties:
+        refresh:
+          type: string
+          description: Refresh token to blacklist
+      required:
+      - refresh
+    LogoutRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+          description: Refresh token to blacklist
+      required:
+      - refresh
+    MediaType:
+      enum:
+      - IMAGE
+      - MODEL_3D
+      type: string
+      description: |-
+        * `IMAGE` - Image
+        * `MODEL_3D` - 3D Model
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/NotificationTypeEnum'
+        message:
+          type: string
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - message
+      - type
+    NotificationRequest:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/NotificationTypeEnum'
+        message:
+          type: string
+          minLength: 1
+        is_read:
+          type: boolean
+      required:
+      - message
+      - type
+    NotificationTypeEnum:
+      enum:
+      - PROJECT
+      - INVESTMENT
+      - ACCESS
+      - SYSTEM
+      type: string
+      description: |-
+        * `PROJECT` - Project
+        * `INVESTMENT` - Investment
+        * `ACCESS` - Access Request
+        * `SYSTEM` - System
+    PaginatedAccessRequestListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessRequestList'
+    PaginatedAdminProjectListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminProjectList'
+    PaginatedAuditLogList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+    PaginatedFavoriteListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/FavoriteList'
+    PaginatedInvestorProjectListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvestorProjectList'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    PaginatedPaymentTransactionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentTransaction'
+    PaginatedProjectListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectList'
+    PaginatedProjectMediaListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectMediaList'
+    PaginatedSharePurchaseListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SharePurchaseList'
+    PasswordResetConfirm:
+      type: object
+      description: Password reset confirmation serializer.
+      properties:
+        token:
+          type: string
+          maxLength: 64
+      required:
+      - token
+    PasswordResetConfirmRequest:
+      type: object
+      description: Password reset confirmation serializer.
+      properties:
+        token:
+          type: string
+          minLength: 1
+          maxLength: 64
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - password_confirm
+      - token
+    PasswordResetRequest:
+      type: object
+      description: |-
+        Password reset request serializer.
+        SRS: Users can reset password via email.
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    PasswordResetRequestRequest:
+      type: object
+      description: |-
+        Password reset request serializer.
+        SRS: Users can reset password via email.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - email
+    PatchedProjectUpdateRequest:
+      type: object
+      description: |-
+        Serializer for updating existing projects.
+        Only allows editing specific fields.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        restricted_fields: {}
+        is_3d_restricted:
+          type: boolean
+    PaymentCallback:
+      type: object
+      description: |-
+        Serializer for payment gateway callback.
+        Validates callback data from external payment provider.
+      properties:
+        payment_reference_id:
+          type: string
+        success:
+          type: boolean
+        gateway_payload: {}
+      required:
+      - gateway_payload
+      - payment_reference_id
+      - success
+    PaymentCallbackRequest:
+      type: object
+      description: |-
+        Serializer for payment gateway callback.
+        Validates callback data from external payment provider.
+      properties:
+        payment_reference_id:
+          type: string
+          minLength: 1
+        success:
+          type: boolean
+        gateway_payload: {}
+      required:
+      - gateway_payload
+      - payment_reference_id
+      - success
+    PaymentTransaction:
+      type: object
+      description: |-
+        Serializer for payment transaction records.
+        Used in admin panel and audit logs.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        reference_id:
+          type: string
+          readOnly: true
+          description: Unique reference for idempotency and gateway tracking
+        investor_email:
+          type: string
+          format: email
+          readOnly: true
+        project_title:
+          type: string
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvestmentStatus'
+          readOnly: true
+        has_share_purchase:
+          type: boolean
+          readOnly: true
+        failure_reason:
+          type: string
+          readOnly: true
+          description: Reason for payment failure if applicable
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        processed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: Timestamp when payment was confirmed or failed
+      required:
+      - amount
+      - created_at
+      - failure_reason
+      - has_share_purchase
+      - id
+      - investor_email
+      - processed_at
+      - project_title
+      - reference_id
+      - status
+    PortfolioSummary:
+      type: object
+      description: Serializer for investor portfolio summary.
+      properties:
+        total_invested:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        projects_invested:
+          type: integer
+        total_shares_owned:
+          type: integer
+        investment_count:
+          type: integer
+      required:
+      - investment_count
+      - projects_invested
+      - total_invested
+      - total_shares_owned
+    ProjectActionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+      - message
+      - success
+    ProjectChangesRequestRequest:
+      type: object
+      properties:
+        note:
+          type: string
+          minLength: 1
+          description: Note for developer
+    ProjectCreate:
+      type: object
+      description: Serializer for creating new projects by developers.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        category:
+          type: string
+          maxLength: 100
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        total_project_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_shares:
+          type: integer
+          minimum: 1
+        restricted_fields: {}
+        is_3d_restricted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - description
+      - duration_days
+      - id
+      - title
+      - total_project_value
+      - total_shares
+    ProjectCreateRequest:
+      type: object
+      description: Serializer for creating new projects by developers.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        total_project_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_shares:
+          type: integer
+          minimum: 1
+        restricted_fields: {}
+        is_3d_restricted:
+          type: boolean
+      required:
+      - category
+      - description
+      - duration_days
+      - title
+      - total_project_value
+      - total_shares
+    ProjectList:
+      type: object
+      description: Serializer for listing developer's projects.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        category:
+          type: string
+          maxLength: 100
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        total_project_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_shares:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+        share_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        shares_sold:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        remaining_shares:
+          type: integer
+          readOnly: true
+        funding_percentage:
+          type: number
+          format: double
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - duration_days
+      - funding_percentage
+      - id
+      - remaining_shares
+      - title
+      - total_project_value
+      - total_shares
+    ProjectMediaList:
+      type: object
+      description: Serializer for listing project media.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/MediaType'
+        file:
+          type: string
+          format: uri
+        file_url:
+          type: string
+          format: uri
+          readOnly: true
+        is_restricted:
+          type: boolean
+        uploaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - file
+      - file_url
+      - id
+      - type
+      - uploaded_at
+    ProjectMediaUpload:
+      type: object
+      description: Serializer for uploading project media (images or 3D models).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/MediaType'
+        file:
+          type: string
+          format: uri
+        is_restricted:
+          type: boolean
+        uploaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - file
+      - id
+      - type
+      - uploaded_at
+    ProjectMediaUploadRequest:
+      type: object
+      description: Serializer for uploading project media (images or 3D models).
+      properties:
+        type:
+          $ref: '#/components/schemas/MediaType'
+        file:
+          type: string
+          format: binary
+        is_restricted:
+          type: boolean
+      required:
+      - file
+      - type
+    ProjectRejectRequestRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          description: Reason for rejection
+    ProjectStatus:
+      enum:
+      - DRAFT
+      - PENDING
+      - APPROVED
+      - REJECTED
+      - NEEDS_CHANGES
+      - ARCHIVED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `PENDING` - Pending Review
+        * `APPROVED` - Approved
+        * `REJECTED` - Rejected
+        * `NEEDS_CHANGES` - Needs Changes
+        * `ARCHIVED` - Archived
+    ProjectUpdate:
+      type: object
+      description: |-
+        Serializer for updating existing projects.
+        Only allows editing specific fields.
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        category:
+          type: string
+          maxLength: 100
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        restricted_fields: {}
+        is_3d_restricted:
+          type: boolean
+      required:
+      - category
+      - description
+      - duration_days
+      - title
+    ProjectUpdateRequest:
+      type: object
+      description: |-
+        Serializer for updating existing projects.
+        Only allows editing specific fields.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        restricted_fields: {}
+        is_3d_restricted:
+          type: boolean
+      required:
+      - category
+      - description
+      - duration_days
+      - title
+    SharePurchaseDetail:
+      type: object
+      description: |-
+        Detailed serializer for individual share purchase.
+        Used in dashboard and transaction history.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project_id:
+          type: string
+          format: uuid
+          readOnly: true
+        project_title:
+          type: string
+          readOnly: true
+        project_status:
+          type: string
+          readOnly: true
+        project_total_shares:
+          type: integer
+          readOnly: true
+        project_shares_sold:
+          type: integer
+          readOnly: true
+        shares_purchased:
+          type: integer
+          readOnly: true
+        price_per_share:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Price per share at time of purchase
+        total_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Total amount paid (shares × price_per_share)
+        payment_details:
+          type: object
+          properties:
+            reference_id:
+              type: string
+            status:
+              type: string
+            processed_at:
+              type: string
+              format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - payment_details
+      - price_per_share
+      - project_id
+      - project_shares_sold
+      - project_status
+      - project_title
+      - project_total_shares
+      - shares_purchased
+      - total_amount
+    SharePurchaseList:
+      type: object
+      description: |-
+        Serializer for listing investor's share purchases.
+        Includes project details for easy reference.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project_id:
+          type: string
+          format: uuid
+          readOnly: true
+        project_title:
+          type: string
+          readOnly: true
+        project_category:
+          type: string
+          readOnly: true
+        shares_purchased:
+          type: integer
+          readOnly: true
+        price_per_share:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Price per share at time of purchase
+        total_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          description: Total amount paid (shares × price_per_share)
+        payment_status:
+          type: string
+          readOnly: true
+        payment_reference:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - payment_reference
+      - payment_status
+      - price_per_share
+      - project_category
+      - project_id
+      - project_title
+      - shares_purchased
+      - total_amount
+    Status2a0Enum:
+      enum:
+      - PENDING
+      - APPROVED
+      - REJECTED
+      - REVOKED
+      type: string
+      description: |-
+        * `PENDING` - Pending
+        * `APPROVED` - Approved
+        * `REJECTED` - Rejected
+        * `REVOKED` - Revoked
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    UserLogin:
+      type: object
+      description: |-
+        User login serializer.
+        SRS: Login with email and password.
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    UserLoginRequest:
+      type: object
+      description: |-
+        User login serializer.
+        SRS: Login with email and password.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    UserProfile:
+      type: object
+      description: User profile serializer for viewing user information.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/UserProfileRoleEnum'
+          readOnly: true
+        auth_provider:
+          allOf:
+          - $ref: '#/components/schemas/AuthProviderEnum'
+          readOnly: true
+        is_email_verified:
+          type: boolean
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - auth_provider
+      - date_joined
+      - email
+      - first_name
+      - full_name
+      - id
+      - is_email_verified
+      - last_name
+      - role
+    UserProfileRoleEnum:
+      enum:
+      - ADMIN
+      - DEVELOPER
+      - INVESTOR
+      type: string
+      description: |-
+        * `ADMIN` - Admin
+        * `DEVELOPER` - Developer
+        * `INVESTOR` - Investor
+    UserRegistration:
+      type: object
+      description: |-
+        User registration serializer.
+
+        SRS Requirements:
+        - Email and password required
+        - First name and last name required
+        - Role selection (Developer or Investor only)
+        - Password validation
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/UserRegistrationRoleEnum'
+          description: |-
+            Select your role: Developer or Investor
+
+            * `DEVELOPER` - Developer
+            * `INVESTOR` - Investor
+      required:
+      - email
+      - first_name
+      - last_name
+      - role
+    UserRegistrationRequest:
+      type: object
+      description: |-
+        User registration serializer.
+
+        SRS Requirements:
+        - Email and password required
+        - First name and last name required
+        - Role selection (Developer or Investor only)
+        - Password validation
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          description: Password must be at least 8 characters with letters and numbers
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+          description: Must match password field
+        role:
+          allOf:
+          - $ref: '#/components/schemas/UserRegistrationRoleEnum'
+          description: |-
+            Select your role: Developer or Investor
+
+            * `DEVELOPER` - Developer
+            * `INVESTOR` - Investor
+      required:
+      - email
+      - first_name
+      - last_name
+      - password
+      - password_confirm
+      - role
+    UserRegistrationRoleEnum:
+      enum:
+      - DEVELOPER
+      - INVESTOR
+      type: string
+      description: |-
+        * `DEVELOPER` - Developer
+        * `INVESTOR` - Investor
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

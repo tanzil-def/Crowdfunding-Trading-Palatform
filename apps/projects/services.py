@@ -61,6 +61,18 @@ def submit_project_for_review(project):
     project.status = 'PENDING'
     project.save(update_fields=['status'])
 
+    # Notify admins
+    from apps.notifications.services import create_notification
+    from apps.users.models import User
+    admins = User.objects.filter(role='ADMIN', is_active=True)
+    for admin in admins:
+        create_notification(
+            user=admin,
+            notification_type='PROJECT',
+            title='New Project Submission',
+            message=f"New project '{project.title}' submitted for review by {project.developer.email}."
+        )
+
 
 def validate_media(file, media_type):
     """
@@ -101,7 +113,6 @@ def admin_approve_project(project, admin_user):
     project.status = 'APPROVED'
     project.save(update_fields=['status'])
     
-    from apps.audit.services import log_admin_action
     log_admin_action(
         admin_user=admin_user,
         action="Approved Project",
@@ -111,6 +122,14 @@ def admin_approve_project(project, admin_user):
             "title": project.title,
             "developer_email": project.developer.email
         }
+    )
+
+    from apps.notifications.services import create_notification
+    create_notification(
+        user=project.developer,
+        notification_type='PROJECT',
+        title='Project Approved',
+        message=f"Your project '{project.title}' has been approved!"
     )
 
 
@@ -125,7 +144,6 @@ def admin_reject_project(project, admin_user, reason=None):
     project.status = 'REJECTED'
     project.save(update_fields=['status'])
     
-    from apps.audit.services import log_admin_action
     log_admin_action(
         admin_user=admin_user,
         action="Rejected Project",
@@ -136,6 +154,14 @@ def admin_reject_project(project, admin_user, reason=None):
             "developer_email": project.developer.email,
             "reason": reason or "No reason provided"
         }
+    )
+
+    from apps.notifications.services import create_notification
+    create_notification(
+        user=project.developer,
+        notification_type='PROJECT',
+        title='Project Rejected',
+        message=f"Your project '{project.title}' was rejected. Reason: {reason or 'No reason provided'}"
     )
 
 
@@ -150,7 +176,6 @@ def admin_request_changes(project, admin_user, note=None):
     project.status = 'NEEDS_CHANGES'
     project.save(update_fields=['status'])
     
-    from apps.audit.services import log_admin_action
     log_admin_action(
         admin_user=admin_user,
         action="Requested Changes on Project",
@@ -161,6 +186,14 @@ def admin_request_changes(project, admin_user, note=None):
             "developer_email": project.developer.email,
             "note": note or "No note provided"
         }
+    )
+
+    from apps.notifications.services import create_notification
+    create_notification(
+        user=project.developer,
+        notification_type='PROJECT',
+        title='Changes Requested',
+        message=f"Changes requested for project '{project.title}'. Note: {note or 'No note provided'}"
     )
 
 

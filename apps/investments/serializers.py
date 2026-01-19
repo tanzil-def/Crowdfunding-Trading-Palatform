@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from decimal import Decimal
 from .models import SharePurchase, PaymentTransaction
 from utils.exceptions import ResourceConflictError
@@ -115,6 +116,14 @@ class SharePurchaseDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field({
+        'type': 'object',
+        'properties': {
+            'reference_id': {'type': 'string'},
+            'status': {'type': 'string'},
+            'processed_at': {'type': 'string', 'format': 'date-time'}
+        }
+    })
     def get_payment_details(self, obj):
         """
         Include payment transaction details for receipt purposes.
@@ -151,8 +160,19 @@ class PaymentTransactionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(serializers.BooleanField())
     def get_has_share_purchase(self, obj):
         """
         Check if this payment resulted in share purchase.
         """
         return hasattr(obj, 'share_purchase')
+
+
+class PortfolioSummarySerializer(serializers.Serializer):
+    """
+    Serializer for investor portfolio summary.
+    """
+    total_invested = serializers.DecimalField(max_digits=12, decimal_places=2)
+    projects_invested = serializers.IntegerField()
+    total_shares_owned = serializers.IntegerField()
+    investment_count = serializers.IntegerField()

@@ -8,21 +8,8 @@ from .models import SharePurchase, PaymentTransaction
 from apps.projects.models import Project
 from utils.exceptions import UnverifiedUserError, ResourceConflictError
 
-# Import audit logging
-try:
-    from apps.audit.services import log_admin_action
-except ImportError:
-    def log_admin_action(*args, **kwargs):
-        """Fallback if audit app not configured"""
-        pass
-
-# Import notifications
-try:
-    from apps.notifications.services import create_notification
-except ImportError:
-    def create_notification(*args, **kwargs):
-        """Fallback if notifications app not configured"""
-        pass
+from apps.audit.services import log_admin_action
+from apps.notifications.services import create_notification
 
 
 def validate_investor_eligibility(investor):

@@ -122,6 +122,13 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
     "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "ProjectStatus": "apps.projects.models.Project.STATUS_CHOICES",
+        "InvestmentStatus": "apps.investments.models.PaymentTransaction.STATUS_CHOICES",
+        "AccessRequestStatus": "apps.access_requests.models.AccessRequest.STATUS_CHOICES",
+        "MediaType": "apps.projects.models.ProjectMedia.MEDIA_TYPE_CHOICES",
+        "NotificationType": "apps.notifications.models.Notification.NOTIFICATION_TYPE_CHOICES",
+    },
 }
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG

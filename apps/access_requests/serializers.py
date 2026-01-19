@@ -15,3 +15,8 @@ class AccessRequestListSerializer(serializers.ModelSerializer):
 
 class AdminAccessRequestActionSerializer(serializers.Serializer):
     reason = serializers.CharField(required=False, allow_blank=True)
+
+
+class AccessRequestActionResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()

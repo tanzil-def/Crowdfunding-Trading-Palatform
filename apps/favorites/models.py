@@ -1,7 +1,9 @@
 import uuid
 from django.db import models
+from django.db.models import UniqueConstraint
 from apps.users.models import User
 from apps.projects.models import Project
+
 
 class Favorite(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -10,5 +12,13 @@ class Favorite(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('investor', 'project')
         ordering = ['-created_at']
+        constraints = [
+            UniqueConstraint(
+                fields=['investor', 'project'],
+                name='unique_investor_project_favorite'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.investor} ❤️ {self.project}"

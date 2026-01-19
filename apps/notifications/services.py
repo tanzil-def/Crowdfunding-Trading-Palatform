@@ -1,13 +1,16 @@
 from .models import Notification
 
-def create_notification(user, type, message):
+def create_notification(user, notification_type, message, title=None, metadata=None):
     """
     Central function to create notifications for any user.
     """
-    Notification.objects.create(
+    from .models import Notification
+    return Notification.objects.create(
         user=user,
-        type=type,
-        message=message
+        type=notification_type,
+        title=title,
+        message=message,
+        metadata=metadata or {}
     )
 
 def mark_notification_as_read(notification):

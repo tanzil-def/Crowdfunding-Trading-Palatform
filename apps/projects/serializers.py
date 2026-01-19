@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from decimal import Decimal, ROUND_HALF_UP
 from django.core.validators import MinValueValidator
 from .models import Project, ProjectMedia
@@ -101,6 +102,7 @@ class ProjectMediaListSerializer(serializers.ModelSerializer):
         model = ProjectMedia
         fields = ("id", "type", "file", "file_url", "is_restricted", "uploaded_at")
     
+    @extend_schema_field(serializers.URLField())
     def get_file_url(self, obj):
         request = self.context.get('request')
         if obj.file and hasattr(obj.file, 'url'):
@@ -161,6 +163,7 @@ class InvestorProjectDetailSerializer(serializers.ModelSerializer):
             "has_access", "created_at"
         )
     
+    @extend_schema_field(serializers.BooleanField())
     def get_has_access(self, obj):
         """
         Check if investor has approved access to restricted data.
@@ -191,3 +194,16 @@ class InvestorProjectDetailSerializer(serializers.ModelSerializer):
             data.pop('restricted_fields', None)
         
         return data
+
+
+class ProjectActionResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+class ProjectRejectRequestSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False, help_text="Reason for rejection")
+
+
+class ProjectChangesRequestSerializer(serializers.Serializer):
+    note = serializers.CharField(required=False, help_text="Note for developer")

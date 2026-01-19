@@ -33,15 +33,20 @@ class FavoriteListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return Favorite.objects.none()
         return Favorite.objects.filter(investor=self.request.user)
 
 
 # DELETE /favorites/{id}/
 class FavoriteDeleteView(generics.DestroyAPIView):
+    serializer_class = FavoriteListSerializer  # Added to satisfy Swagger
     permission_classes = [IsAuthenticated, IsInvestor]
     lookup_field = 'id'
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return Favorite.objects.none()
         return Favorite.objects.filter(investor=self.request.user)
 
     def delete(self, request, *args, **kwargs):

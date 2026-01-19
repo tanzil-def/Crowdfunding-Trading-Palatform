@@ -9,7 +9,8 @@ from .serializers import (
     PaymentCallbackSerializer,
     SharePurchaseListSerializer,
     SharePurchaseDetailSerializer,
-    PaymentTransactionSerializer
+    PaymentTransactionSerializer,
+    PortfolioSummarySerializer
 )
 from .services import initiate_investment, confirm_payment, get_investor_portfolio_summary
 from .models import SharePurchase, PaymentTransaction
@@ -153,6 +154,8 @@ class MyInvestmentsListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return SharePurchase.objects.none()
         return SharePurchase.objects.filter(
             investor=self.request.user
         ).select_related(
@@ -173,6 +176,8 @@ class InvestmentDetailView(generics.RetrieveAPIView):
     lookup_field = 'id'
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return SharePurchase.objects.none()
         return SharePurchase.objects.filter(
             investor=self.request.user
         ).select_related('project', 'payment')
@@ -190,13 +195,15 @@ class InvestorPortfolioSummaryView(generics.GenericAPIView):
     - Total shares owned
     - Investment count
     """
+    serializer_class = PortfolioSummarySerializer
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get(self, request):
         summary = get_investor_portfolio_summary(request.user)
+        serializer = self.get_serializer(summary)
         
         return success_response(
-            data=summary,
+            data=serializer.data,
             message="Portfolio summary retrieved successfully"
         )
 
@@ -216,6 +223,9 @@ class AdminPaymentTransactionListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return PaymentTransaction.objects.none()
+        
         if self.request.user.role != 'ADMIN':
             return PaymentTransaction.objects.none()
         

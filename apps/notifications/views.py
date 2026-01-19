@@ -11,10 +11,12 @@ class NotificationListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return Notification.objects.none()
         return Notification.objects.filter(user=self.request.user)
 
-# POST /notifications/{id}/read/ → mark as read
 class NotificationMarkReadView(generics.GenericAPIView):
+    serializer_class = NotificationSerializer  # Added to satisfy Swagger
     permission_classes = [IsAuthenticated]
 
     def post(self, request, id):

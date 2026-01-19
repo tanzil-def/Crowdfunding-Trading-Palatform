@@ -1,4 +1,5 @@
 from rest_framework import generics, status, serializers
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -12,7 +13,8 @@ from .serializers import (
     ProjectCreateSerializer, ProjectListSerializer, ProjectUpdateSerializer,
     ProjectMediaUploadSerializer, ProjectMediaListSerializer,
     AdminProjectListSerializer, InvestorProjectListSerializer,
-    InvestorProjectDetailSerializer
+    InvestorProjectDetailSerializer, ProjectActionResponseSerializer,
+    ProjectRejectRequestSerializer, ProjectChangesRequestSerializer
 )
 from .permissions import IsDeveloper, IsProjectOwner, IsAdmin, IsInvestor
 from .services import (
@@ -98,9 +100,13 @@ class ProjectSubmitView(generics.GenericAPIView):
     """
     Submit a draft project for admin review.
     """
-    serializer_class = serializers.Serializer
+    serializer_class = ProjectActionResponseSerializer
     permission_classes = [IsAuthenticated, IsDeveloper, IsProjectOwner]
 
+    @extend_schema(
+        request=None, 
+        responses={200: ProjectActionResponseSerializer}
+    )
     def post(self, request, id):
         project = get_object_or_404(Project, id=id, developer=request.user)
         try:
@@ -148,7 +154,11 @@ class ProjectMediaListView(generics.ListAPIView):
     serializer_class = ProjectMediaListSerializer
 
     def get_queryset(self):
-        project = get_object_or_404(Project, id=self.kwargs["id"])
+        project_id = self.kwargs.get("id")
+        if not project_id or getattr(self, "swagger_fake_view", False):
+            return ProjectMedia.objects.none()
+        
+        project = get_object_or_404(Project, id=project_id)
         queryset = ProjectMedia.objects.filter(project=project)
         user = self.request.user
 
@@ -184,6 +194,8 @@ class AdminPendingProjectListView(generics.ListAPIView):
     ordering = ['-created_at']
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
+            return Project.objects.none()
         return Project.objects.filter(status='PENDING')
 
 
@@ -191,9 +203,13 @@ class AdminProjectApproveView(generics.GenericAPIView):
     """
     Approve a pending project.
     """
-    serializer_class = serializers.Serializer
+    serializer_class = ProjectActionResponseSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
 
+    @extend_schema(
+        request=None, 
+        responses={200: ProjectActionResponseSerializer}
+    )
     def post(self, request, id):
         project = get_object_or_404(Project, id=id)
         try:
@@ -209,9 +225,13 @@ class AdminProjectRejectView(generics.GenericAPIView):
     """
     Reject a pending project with optional reason.
     """
-    serializer_class = serializers.Serializer
+    serializer_class = ProjectRejectRequestSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
 
+    @extend_schema(
+        request=ProjectRejectRequestSerializer, 
+        responses={200: ProjectActionResponseSerializer}
+    )
     def post(self, request, id):
         project = get_object_or_404(Project, id=id)
         reason = request.data.get('reason')
@@ -228,9 +248,13 @@ class AdminProjectRequestChangesView(generics.GenericAPIView):
     """
     Request changes on a pending project with optional note.
     """
-    serializer_class = serializers.Serializer
+    serializer_class = ProjectChangesRequestSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
 
+    @extend_schema(
+        request=ProjectChangesRequestSerializer, 
+        responses={200: ProjectActionResponseSerializer}
+    )
     def post(self, request, id):
         project = get_object_or_404(Project, id=id)
         note = request.data.get('note')
@@ -258,6 +282,8 @@ class InvestorProjectBrowseView(generics.ListAPIView):
     ordering = ['-created_at']
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Project.objects.none()
         return Project.objects.filter(status='APPROVED')
 
 
@@ -271,6 +297,8 @@ class InvestorProjectDetailView(generics.RetrieveAPIView):
     lookup_field = "id"
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Project.objects.none()
         return Project.objects.filter(status='APPROVED')
 
 
@@ -284,6 +312,9 @@ class InvestorProjectCompareView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Project.objects.none()
+        
         ids = self.request.query_params.get("ids", "")
         
         if not ids:

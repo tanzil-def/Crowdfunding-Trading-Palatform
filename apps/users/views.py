@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -122,17 +122,17 @@ class UserLogoutView(generics.GenericAPIView):
     - Secure logout
     - Session invalidation
     """
+    class LogoutSerializer(serializers.Serializer):
+        refresh = serializers.CharField(help_text="Refresh token to blacklist")
+
+    serializer_class = LogoutSerializer
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
-        refresh_token = request.data.get('refresh')
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        refresh_token = serializer.validated_data.get('refresh')
         
-        if not refresh_token:
-            return error_response(
-                message="Refresh token required",
-                status_code=status.HTTP_400_BAD_REQUEST
-            )
-            
         try:
             logout_user(refresh_token)
             return success_response(message="Logout successful")

@@ -10,8 +10,9 @@ class AdminAuditLogListView(generics.ListAPIView):
     Admin-only view to list all audit logs.
     Supports pagination.
     """
-    queryset = AuditLog.objects.all()
+    queryset = AuditLog.objects.all().select_related('actor')
     serializer_class = AuditLogSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
-
-    # Optional: add filters for entity_type, actor, or date range in future
+    filterset_fields = ['action', 'entity_type', 'actor']
+    search_fields = ['action', 'entity_type', 'metadata', 'actor__email']
+    ordering_fields = ['created_at']
