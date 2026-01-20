@@ -2,6 +2,8 @@ from decimal import Decimal
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
 from .models import Project
+from apps.audit.services import log_admin_action
+
 
 
 IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
@@ -16,7 +18,7 @@ def calculate_share_price(total_value, total_shares):
     """
     if total_shares <= 0:
         raise ValidationError("Total shares must be greater than zero")
-    return Decimal(total_value) / Decimal(total_shares)
+    return (Decimal(total_value) / Decimal(total_shares)).quantize(Decimal("0.01"))
 
 
 def validate_project_editable(project):
@@ -100,6 +102,8 @@ def validate_media(file, media_type):
             raise ValidationError({
                 "file": f"3D model file too large. Maximum size: {MAX_3D_MB}MB"
             })
+    else:
+        raise ValidationError({"media_type": "Invalid media type"})
 
 
 @transaction.atomic

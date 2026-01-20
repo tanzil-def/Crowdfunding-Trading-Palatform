@@ -45,7 +45,13 @@ class PaymentTransaction(models.Model):
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))]
+        validators=[MinValueValidator(Decimal('0.01'))],
+        help_text="Total amount for the transaction"
+    )
+    shares_requested = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(1)],
+        help_text="Number of shares requested in this transaction"
     )
     status = models.CharField(
         max_length=20,

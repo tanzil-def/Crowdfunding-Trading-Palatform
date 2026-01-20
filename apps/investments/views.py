@@ -1,11 +1,14 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError, APIException
 
 from .serializers import (
     InitiateInvestmentSerializer,
+    InvestmentInitiateResponseSerializer,
     PaymentCallbackSerializer,
     SharePurchaseListSerializer,
     SharePurchaseDetailSerializer,
@@ -16,11 +19,12 @@ from .services import initiate_investment, confirm_payment, get_investor_portfol
 from .models import SharePurchase, PaymentTransaction
 from apps.projects.models import Project
 
-# Import permissions - adjust based on your project structure
+# Import permissions
 try:
-    from utils.permissions import IsInvestor
+    from utils.permissions import IsInvestor, IsAdmin
 except ImportError:
     from apps.favorites.permissions import IsInvestor
+    from utils.permissions import IsAdmin
 
 from utils.responses import success_response, error_response
 
@@ -32,15 +36,28 @@ class InvestmentInitiateView(generics.GenericAPIView):
     Initiate investment process for an approved project.
     
     SRS Requirements:
-    - Email verification required
-    - Only approved projects
-    - Share availability check
-    - Idempotency support
+    - Email verification required (403 if unverified)
+    - Only approved projects (400 if not approved)
+    - Share availability check (400 if insufficient)
+    - Idempotency support (409 if duplicate)
+    
+    Request Body:
+        - project_id (UUID): Project to invest in
+        - shares_requested (int): Number of shares to purchase
+        - idempotency_key (string): Unique transaction reference
+    
+    Response:
+        - project_id (UUID): Project identifier
+        - shares_requested (int): Number of shares requested
+        - idempotency_key (string): Transaction reference
+        - reference_id (UUID): Payment transaction ID
+        - payment_url (string): URL to redirect for payment
     """
     permission_classes = [IsAuthenticated, IsInvestor]
     serializer_class = InitiateInvestmentSerializer
 
     def post(self, request):
+        # Validate request data
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -48,9 +65,11 @@ class InvestmentInitiateView(generics.GenericAPIView):
         shares_requested = serializer.validated_data['shares_requested']
         idempotency_key = serializer.validated_data['idempotency_key']
 
+        # Get project or return 404
         project = get_object_or_404(Project, id=project_id)
 
         try:
+            # Call service layer for business logic
             payment_info = initiate_investment(
                 project=project,
                 investor=request.user,
@@ -58,8 +77,11 @@ class InvestmentInitiateView(generics.GenericAPIView):
                 idempotency_key=idempotency_key
             )
 
+            # Serialize response
+            response_serializer = InvestmentInitiateResponseSerializer(payment_info)
+
             return success_response(
-                data=payment_info,
+                data=response_serializer.data,
                 message="Investment initiated successfully. Proceed to payment gateway.",
                 status_code=status.HTTP_201_CREATED
             )
@@ -89,19 +111,24 @@ class PaymentCallbackView(generics.GenericAPIView):
     Processes payment confirmations and creates share purchases.
     
     SRS Requirements:
-    - Idempotent processing
+    - Idempotent processing (409 if already processed)
     - Prevents duplicate callbacks
-    - Atomic share allocation
+    - Atomic share allocation with select_for_update
     - Audit logging
     
-    Note: This endpoint may need to allow unauthenticated requests
-    from payment gateway. Implement proper signature verification
-    in production.
+    Note: This endpoint allows unauthenticated requests from payment gateway.
+    In production, implement proper signature verification.
+    
+    Request Body:
+        - payment_reference_id (string): Transaction reference
+        - success (boolean): Payment success status
+        - gateway_payload (object): Raw gateway data
     """
     permission_classes = [AllowAny]
     serializer_class = PaymentCallbackSerializer
 
     def post(self, request):
+        # Validate callback data
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -110,6 +137,7 @@ class PaymentCallbackView(generics.GenericAPIView):
         success = serializer.validated_data['success']
 
         try:
+            # Call service layer for payment confirmation
             result = confirm_payment(
                 payment_reference_id=payment_reference_id,
                 gateway_payload=gateway_payload,
@@ -149,13 +177,29 @@ class MyInvestmentsListView(generics.ListAPIView):
     - Show investment history
     - Include project details
     - Ordered by most recent
+    - Support search and ordering
+    
+    Query Parameters:
+        - search: Search in project title or payment reference
+        - ordering: Order by created_at, total_amount, or shares_purchased
+        - page: Page number for pagination
+        - page_size: Number of results per page
     """
     serializer_class = SharePurchaseListSerializer
     permission_classes = [IsAuthenticated, IsInvestor]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['project__title', 'payment__reference_id']
+    ordering_fields = ['created_at', 'total_amount', 'shares_purchased']
+    ordering = ['-created_at']  # Default ordering
 
     def get_queryset(self):
+        """
+        Return share purchases for authenticated investor.
+        Optimized with select_related to prevent N+1 queries.
+        """
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
             return SharePurchase.objects.none()
+        
         return SharePurchase.objects.filter(
             investor=self.request.user
         ).select_related(
@@ -170,14 +214,24 @@ class InvestmentDetailView(generics.RetrieveAPIView):
     
     Retrieve detailed information about a specific investment.
     Used for receipts and transaction details.
+    
+    SRS Requirements:
+    - Detailed investment information
+    - Include project status and shares sold
+    - Include payment transaction details
     """
     serializer_class = SharePurchaseDetailSerializer
     permission_classes = [IsAuthenticated, IsInvestor]
     lookup_field = 'id'
 
     def get_queryset(self):
+        """
+        Return share purchases for authenticated investor only.
+        Ensures investors can only view their own investments.
+        """
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
             return SharePurchase.objects.none()
+        
         return SharePurchase.objects.filter(
             investor=self.request.user
         ).select_related('project', 'payment')
@@ -194,12 +248,17 @@ class InvestorPortfolioSummaryView(generics.GenericAPIView):
     - Number of projects invested
     - Total shares owned
     - Investment count
+    
+    Response uses optimized aggregation queries for performance.
     """
     serializer_class = PortfolioSummarySerializer
     permission_classes = [IsAuthenticated, IsInvestor]
 
     def get(self, request):
+        # Call service layer for portfolio summary
         summary = get_investor_portfolio_summary(request.user)
+        
+        # Serialize response
         serializer = self.get_serializer(summary)
         
         return success_response(
@@ -218,15 +277,29 @@ class AdminPaymentTransactionListView(generics.ListAPIView):
     - Admin can review all transactions
     - Includes success and failures
     - Audit trail support
+    - Support search, filtering, and ordering
+    
+    Query Parameters:
+        - search: Search in reference_id, investor email, or project title
+        - ordering: Order by created_at, amount, or status
+        - status: Filter by transaction status (INITIATED, SUCCESS, FAILED)
+        - page: Page number for pagination
+        - page_size: Number of results per page
     """
     serializer_class = PaymentTransactionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdmin]
+    filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
+    search_fields = ['reference_id', 'investor__email', 'project__title']
+    ordering_fields = ['created_at', 'amount', 'status']
+    filterset_fields = ['status']
+    ordering = ['-created_at']  # Default ordering
 
     def get_queryset(self):
+        """
+        Return all payment transactions with related data.
+        Optimized with select_related to prevent N+1 queries.
+        """
         if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
-            return PaymentTransaction.objects.none()
-        
-        if self.request.user.role != 'ADMIN':
             return PaymentTransaction.objects.none()
         
         return PaymentTransaction.objects.all().select_related(
@@ -240,13 +313,20 @@ class AdminPaymentTransactionDetailView(generics.RetrieveAPIView):
     GET /api/v1/investments/admin/transactions/{id}/
     
     Admin view of individual payment transaction details.
+    
+    SRS Requirements:
+    - Admin can view detailed transaction information
+    - Includes all transaction metadata
     """
     serializer_class = PaymentTransactionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdmin]
     lookup_field = 'id'
 
     def get_queryset(self):
-        if self.request.user.role != 'ADMIN':
+        """
+        Return all payment transactions for admin users.
+        """
+        if getattr(self, "swagger_fake_view", False) or not self.request.user.is_authenticated:
             return PaymentTransaction.objects.none()
         
         return PaymentTransaction.objects.all().select_related(

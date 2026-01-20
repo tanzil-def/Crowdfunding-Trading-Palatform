@@ -3,16 +3,14 @@ from django.db import models
 from apps.users.models import User
 
 class AuditLog(models.Model):
-    """
-    Immutable audit log for admin actions.
-    Never updated or deleted.
-    """
+    
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='audit_logs',
-        limit_choices_to={'role': 'ADMIN'}  # Only admins can perform actions
+        limit_choices_to={'role': 'ADMIN'} 
     )
     action = models.CharField(max_length=255)
     entity_type = models.CharField(max_length=100)

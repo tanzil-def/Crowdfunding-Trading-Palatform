@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Sum, Count
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -12,10 +12,34 @@ from apps.audit.services import log_admin_action
 from apps.notifications.services import create_notification
 
 
+# Configuration
+PAYMENT_GATEWAY_BASE_URL = "https://sandbox.payment.gateway/pay"
+
+
+def get_payment_url(reference_id: str) -> str:
+    """
+    Generate payment gateway URL for given reference ID.
+    
+    Args:
+        reference_id: Unique transaction reference ID
+        
+    Returns:
+        Complete payment URL for gateway redirect
+    """
+    return f"{PAYMENT_GATEWAY_BASE_URL}?ref={reference_id}"
+
+
 def validate_investor_eligibility(investor):
     """
     Validate investor meets requirements to invest.
-    SRS: Unverified investors cannot invest.
+    
+    SRS Requirements:
+    - Unverified investors shall not be able to invest (403 Forbidden)
+    - Only users with INVESTOR role can purchase shares
+    
+    Raises:
+        UnverifiedUserError: If email is not verified (403)
+        ValidationError: If user is not an investor (400)
     """
     if not investor.is_email_verified:
         raise UnverifiedUserError(
@@ -31,7 +55,12 @@ def validate_investor_eligibility(investor):
 def validate_project_eligibility(project):
     """
     Validate project is eligible for investment.
-    SRS: Only approved projects can receive investments.
+    
+    SRS Requirements:
+    - Only approved projects can receive investments
+    
+    Raises:
+        ValidationError: If project is not approved (400)
     """
     if project.status != 'APPROVED':
         raise ValidationError(
@@ -41,8 +70,21 @@ def validate_project_eligibility(project):
 
 def calculate_investment_amount(project, shares_requested):
     """
-    Calculate total investment amount.
-    SRS: Investment Amount = Shares × Per Share Price
+    Calculate total investment amount using Decimal for precision.
+    
+    SRS Requirements:
+    - Investment Amount = Shares × Per Share Price
+    - Use Decimal to avoid floating-point errors
+    
+    Args:
+        project: Project instance
+        shares_requested: Number of shares to purchase
+        
+    Returns:
+        Decimal: Total investment amount
+        
+    Raises:
+        ValidationError: If shares_requested is invalid
     """
     if shares_requested <= 0:
         raise ValidationError("Number of shares must be greater than zero.")
@@ -54,7 +96,17 @@ def calculate_investment_amount(project, shares_requested):
 def check_share_availability(project, shares_requested):
     """
     Check if requested shares are available.
-    SRS: Prevent overselling under any circumstance.
+    
+    SRS Requirements:
+    - Prevent overselling under any circumstance
+    - Atomic check with database lock
+    
+    Args:
+        project: Project instance (should be locked with select_for_update)
+        shares_requested: Number of shares requested
+        
+    Raises:
+        ValidationError: If insufficient shares available (400)
     """
     shares_remaining = project.total_shares - project.shares_sold
     
@@ -70,36 +122,62 @@ def initiate_investment(project, investor, shares_requested, idempotency_key):
     Initiate investment process and create payment transaction.
     
     SRS Requirements Implemented:
-    - Email verification enforcement
-    - Share availability check
-    - Idempotency to prevent duplicates
-    - Atomic transaction
-    - Per-share price calculation
+    - Email verification enforcement (403 if unverified)
+    - Only approved projects (400 if not approved)
+    - Share availability check (400 if insufficient)
+    - Idempotency to prevent duplicates (409 if duplicate)
+    - Atomic transaction with database lock
+    - Per-share price calculation using Decimal
+    - Return payment_url and reference_id for gateway redirect
     
-    Returns payment information for gateway integration.
+    Args:
+        project: Project to invest in
+        investor: User making the investment
+        shares_requested: Number of shares to purchase
+        idempotency_key: Unique key to prevent duplicate transactions
+        
+    Returns:
+        dict: Payment information including payment_url and reference_id
+        
+    Raises:
+        UnverifiedUserError: If investor email not verified (403)
+        ValidationError: If validation fails (400)
+        ResourceConflictError: If duplicate transaction (409)
     """
+    # Validate investor eligibility
     validate_investor_eligibility(investor)
+    
+    # Validate project eligibility
     validate_project_eligibility(project)
     
+    # Atomic transaction with database lock
     with transaction.atomic():
+        # Lock project row to prevent race conditions
         project_locked = Project.objects.select_for_update().get(id=project.id)
         
+        # Check share availability
         check_share_availability(project_locked, shares_requested)
+        
+        # Calculate total amount
         total_amount = calculate_investment_amount(project_locked, shares_requested)
         
+        # Check idempotency - prevent duplicate transactions
         if PaymentTransaction.objects.filter(reference_id=idempotency_key).exists():
             raise ResourceConflictError(
                 f"Transaction with reference {idempotency_key} already exists."
             )
 
+        # Create payment transaction
         payment = PaymentTransaction.objects.create(
             reference_id=idempotency_key,
             investor=investor,
             project=project_locked,
             amount=total_amount,
+            shares_requested=shares_requested,
             status=PaymentTransaction.STATUS_INITIATED
         )
         
+        # Create notification for investor
         create_notification(
             user=investor,
             notification_type='INVESTMENT_INITIATED',
@@ -113,15 +191,16 @@ def initiate_investment(project, investor, shares_requested, idempotency_key):
             }
         )
         
+        # Generate payment URL
+        payment_url = get_payment_url(idempotency_key)
+        
+        # Return response matching InvestmentInitiateResponseSerializer
         return {
-            'payment_id': str(payment.id),
-            'payment_reference': payment.reference_id,
             'project_id': str(project_locked.id),
-            'project_title': project_locked.title,
             'shares_requested': shares_requested,
-            'price_per_share': str(project_locked.share_price),
-            'total_amount': str(total_amount),
-            'investor_id': str(investor.id)
+            'idempotency_key': idempotency_key,
+            'reference_id': str(payment.id),
+            'payment_url': payment_url
         }
 
 
@@ -130,17 +209,32 @@ def process_successful_payment(payment, gateway_payload, shares_requested):
     Process successful payment and create share purchase.
     
     SRS Requirements Implemented:
-    - Atomic share allocation
+    - Atomic share allocation with select_for_update
     - Prevent overselling under concurrency
     - Create purchase record
-    - Update project shares_sold
+    - Update project shares_sold using F() expression
     - Audit logging
+    - Notification to investor and developer
+    
+    Args:
+        payment: PaymentTransaction instance (locked)
+        gateway_payload: Raw payload from payment gateway
+        shares_requested: Number of shares to allocate
+        
+    Returns:
+        SharePurchase: Created share purchase instance
+        
+    Raises:
+        ValidationError: If shares no longer available (race condition)
     """
     with transaction.atomic():
+        # Lock project row to prevent race conditions
         project = Project.objects.select_for_update().get(id=payment.project.id)
         
+        # Re-check share availability (critical for race condition prevention)
         check_share_availability(project, shares_requested)
         
+        # Create share purchase record
         share_purchase = SharePurchase.objects.create(
             investor=payment.investor,
             project=project,
@@ -150,16 +244,20 @@ def process_successful_payment(payment, gateway_payload, shares_requested):
             total_amount=payment.amount
         )
         
+        # Update project shares_sold atomically using F() expression
         project.shares_sold = F('shares_sold') + shares_requested
         project.save(update_fields=['shares_sold'])
         
+        # Update payment status
         payment.status = PaymentTransaction.STATUS_SUCCESS
         payment.gateway_payload = gateway_payload
         payment.processed_at = timezone.now()
         payment.save(update_fields=['status', 'gateway_payload', 'processed_at'])
         
+        # Refresh project to get updated shares_sold value
         project.refresh_from_db()
         
+        # Notify investor of successful payment
         create_notification(
             user=payment.investor,
             notification_type='PAYMENT_SUCCESS',
@@ -173,6 +271,7 @@ def process_successful_payment(payment, gateway_payload, shares_requested):
             }
         )
         
+        # Notify developer of new investment
         create_notification(
             user=project.developer,
             notification_type='NEW_INVESTMENT',
@@ -186,6 +285,7 @@ def process_successful_payment(payment, gateway_payload, shares_requested):
             }
         )
         
+        # Create audit log
         log_admin_action(
             admin_user=None,
             action='PAYMENT_SUCCESS',
@@ -212,6 +312,11 @@ def process_failed_payment(payment, gateway_payload, failure_reason=None):
     - Failed payments do not allocate shares
     - Audit logging for failures
     - User notification
+    
+    Args:
+        payment: PaymentTransaction instance
+        gateway_payload: Raw payload from payment gateway
+        failure_reason: Optional reason for failure
     """
     payment.status = PaymentTransaction.STATUS_FAILED
     payment.gateway_payload = gateway_payload
@@ -219,6 +324,7 @@ def process_failed_payment(payment, gateway_payload, failure_reason=None):
     payment.processed_at = timezone.now()
     payment.save(update_fields=['status', 'gateway_payload', 'failure_reason', 'processed_at'])
     
+    # Notify investor of payment failure
     create_notification(
         user=payment.investor,
         notification_type='PAYMENT_FAILED',
@@ -232,6 +338,7 @@ def process_failed_payment(payment, gateway_payload, failure_reason=None):
         }
     )
     
+    # Create audit log
     log_admin_action(
         admin_user=None,
         action='PAYMENT_FAILED',
@@ -249,72 +356,101 @@ def process_failed_payment(payment, gateway_payload, failure_reason=None):
 
 def confirm_payment(payment_reference_id, gateway_payload, success=True):
     """
-    Main payment confirmation handler.
+    Main payment confirmation handler for gateway callbacks.
     
     SRS Requirements Implemented:
-    - Idempotent payment processing
+    - Idempotent payment processing (409 if already processed)
     - Prevents duplicate callbacks
-    - Atomic transactions
+    - Atomic transactions with select_for_update
     - Comprehensive audit trail
+    - Race condition protection
     
-    Called by payment gateway webhook/callback.
+    Args:
+        payment_reference_id: Reference ID from payment gateway
+        gateway_payload: Raw payload from payment gateway
+        success: Whether payment was successful
+        
+    Returns:
+        dict: Processing result with status and details
+        
+    Raises:
+        ValidationError: If payment not found (404)
+        ResourceConflictError: If already processed (409)
     """
-    try:
-        payment = PaymentTransaction.objects.select_for_update().get(
-            reference_id=payment_reference_id
-        )
-    except PaymentTransaction.DoesNotExist:
-        raise ValidationError(f"Payment transaction not found: {payment_reference_id}")
-    
-    if payment.status != PaymentTransaction.STATUS_INITIATED:
-        raise ResourceConflictError(
-            f"Payment already processed with status: {payment.get_status_display()}"
-        )
-    
-    shares_requested = gateway_payload.get('shares_requested')
-    if not shares_requested:
-        raise ValidationError("Gateway payload missing 'shares_requested' field")
-    
-    if success:
-        share_purchase = process_successful_payment(
-            payment=payment,
-            gateway_payload=gateway_payload,
-            shares_requested=shares_requested
-        )
-        return {
-            'status': 'success',
-            'share_purchase_id': str(share_purchase.id),
-            'shares_purchased': share_purchase.shares_purchased,
-            'message': 'Payment confirmed and shares allocated successfully'
-        }
-    else:
-        failure_reason = gateway_payload.get('failure_reason', 'Gateway reported failure')
-        process_failed_payment(
-            payment=payment,
-            gateway_payload=gateway_payload,
-            failure_reason=failure_reason
-        )
-        return {
-            'status': 'failed',
-            'message': 'Payment failed, no shares allocated'
-        }
+    with transaction.atomic():
+        # Lock payment transaction to prevent duplicate processing
+        try:
+            payment = PaymentTransaction.objects.select_for_update().get(
+                reference_id=payment_reference_id
+            )
+        except PaymentTransaction.DoesNotExist:
+            raise ValidationError(f"Payment transaction not found: {payment_reference_id}")
+        
+        # Idempotency check - prevent duplicate callback processing
+        if payment.status != PaymentTransaction.STATUS_INITIATED:
+            raise ResourceConflictError(
+                f"Payment already processed with status: {payment.get_status_display()}"
+            )
+        
+        # Get shares_requested from gateway payload or payment record
+        shares_requested = gateway_payload.get('shares_requested') or payment.shares_requested
+        if not shares_requested:
+            raise ValidationError("Gateway payload missing 'shares_requested' field")
+        
+        if success:
+            # Process successful payment
+            share_purchase = process_successful_payment(
+                payment=payment,
+                gateway_payload=gateway_payload,
+                shares_requested=shares_requested
+            )
+            return {
+                'status': 'success',
+                'share_purchase_id': str(share_purchase.id),
+                'shares_purchased': share_purchase.shares_purchased,
+                'message': 'Payment confirmed and shares allocated successfully'
+            }
+        else:
+            # Process failed payment
+            failure_reason = gateway_payload.get('failure_reason', 'Gateway reported failure')
+            process_failed_payment(
+                payment=payment,
+                gateway_payload=gateway_payload,
+                failure_reason=failure_reason
+            )
+            return {
+                'status': 'failed',
+                'message': 'Payment failed, no shares allocated'
+            }
 
 
 def get_investor_portfolio_summary(investor):
     """
-    Calculate investor's portfolio summary for dashboard.
+    Get investor's portfolio summary using optimized aggregation queries.
     
-    SRS: Dashboard should show investment metrics derived from transactions.
+    SRS Requirements:
+    - Total invested amount
+    - Number of projects invested
+    - Total shares owned
+    - Investment count
+    
+    Args:
+        investor: User instance
+        
+    Returns:
+        dict: Portfolio summary with aggregated statistics
     """
-    purchases = SharePurchase.objects.filter(investor=investor).select_related('project')
-    
-    total_invested = sum(p.total_amount for p in purchases)
-    total_projects = purchases.values('project').distinct().count()
-    total_shares = sum(p.shares_purchased for p in purchases)
+    # Use aggregation for performance (single query instead of multiple)
+    summary = SharePurchase.objects.filter(investor=investor).aggregate(
+        total_invested=Sum('total_amount'),
+        total_shares=Sum('shares_purchased'),
+        investment_count=Count('id'),
+        projects_count=Count('project', distinct=True)
+    )
     
     return {
-        'total_invested_amount': total_invested,
-        'total_projects_invested': total_projects,
-        'total_shares_owned': total_shares,
-        'investment_count': purchases.count()
+        'total_invested': summary['total_invested'] or Decimal('0.00'),
+        'projects_invested': summary['projects_count'] or 0,
+        'total_shares_owned': summary['total_shares'] or 0,
+        'investment_count': summary['investment_count'] or 0
     }
