@@ -1,0 +1,321 @@
+================================================================================
+                    BACKEND ENDPOINT MAPPING - VERIFIED
+================================================================================
+
+Generated: 2026-01-20
+Project: Crowdfunding Trading Platform
+Status: All endpoints verified and documented
+
+================================================================================
+                         ✅ INVESTMENTS ENDPOINTS
+================================================================================
+
+Base URL: /api/v1/investments/
+
+POST   /initiate/                          InvestmentInitiateView
+       - Create investment transaction
+       - Requires: project_id, shares_requested, idempotency_key
+       - Auth: Required
+
+GET    /my/                                MyInvestmentsListView
+       - List investor's investments
+       - Auth: Required
+
+GET    /<uuid:id>/                         InvestmentDetailView
+       - Get specific investment details
+       - Auth: Required
+
+GET    /portfolio/summary/                 InvestorPortfolioSummaryView
+       - Get portfolio summary (total invested, projects, shares, count)
+       - Auth: Required
+
+POST   /payments/callback/                 PaymentCallbackView
+       - Payment gateway webhook
+       - Receives: payment_reference_id, success, gateway_payload
+       - Auth: Not required (webhook from gateway)
+
+GET    /admin/transactions/                AdminPaymentTransactionListView
+       - List all payment transactions (Admin only)
+       - Auth: Required (Admin)
+
+GET    /admin/transactions/<uuid:id>/      AdminPaymentTransactionDetailView
+       - Get transaction details (Admin only)
+       - Auth: Required (Admin)
+
+================================================================================
+                         ✅ PROJECTS ENDPOINTS
+================================================================================
+
+Base URL: /api/v1/projects/
+
+POST   /                                   ProjectCreateView
+       - Create new project
+       - Requires: title, description, category, duration_days, total_project_value, total_shares
+       - Auth: Required (Developer)
+
+GET    /                                   ProjectCreateView
+       - List projects
+       - Auth: Optional
+
+GET    /my/                                MyProjectListView
+       - List developer's projects
+       - Auth: Required (Developer)
+
+GET    /<uuid:id>/                         ProjectUpdateView
+       - Get project details
+       - Auth: Optional
+
+PATCH  /<uuid:id>/                         ProjectUpdateView
+       - Update project
+       - Auth: Required (Developer)
+
+POST   /<uuid:id>/submit/                  ProjectSubmitView
+       - Submit project for review
+       - Auth: Required (Developer)
+
+POST   /<uuid:id>/media/                   ProjectMediaUploadView
+       - Upload image or 3D model
+       - Auth: Required (Developer)
+
+GET    /<uuid:id>/media/list/              ProjectMediaListView
+       - List project media
+       - Auth: Optional
+
+GET    /admin/projects/pending/            AdminPendingProjectListView
+       - List pending projects for review
+       - Auth: Required (Admin)
+
+POST   /admin/projects/<uuid:id>/approve/  AdminProjectApproveView
+       - Approve project
+       - Auth: Required (Admin)
+
+POST   /admin/projects/<uuid:id>/reject/   AdminProjectRejectView
+       - Reject project
+       - Requires: reason (optional)
+       - Auth: Required (Admin)
+
+POST   /admin/projects/<uuid:id>/request-changes/  AdminProjectRequestChangesView
+       - Request changes on project
+       - Requires: note (optional)
+       - Auth: Required (Admin)
+
+GET    /browse/                            InvestorProjectBrowseView
+       - Browse all approved projects
+       - Auth: Optional
+
+POST   /compare/                           InvestorProjectCompareView
+       - Compare multiple projects
+       - Requires: project_ids[]
+       - Auth: Optional
+
+GET    /<uuid:id>/detail/                  InvestorProjectDetailView
+       - Get project details for investor
+       - Applies restricted fields filtering
+       - Auth: Optional
+
+================================================================================
+                      ✅ ACCESS REQUESTS ENDPOINTS
+================================================================================
+
+Base URL: /api/v1/access-requests/
+
+POST   /                                   AccessRequestCreateView
+       - Request access to restricted project data
+       - Requires: project_id
+       - Auth: Required (Investor)
+
+GET    /my/                                MyAccessRequestListView
+       - List investor's access requests
+       - Auth: Required (Investor)
+
+POST   /admin/<uuid:id>/approve/           AdminAccessRequestApproveView
+       - Approve access request
+       - Auth: Required (Admin)
+
+POST   /admin/<uuid:id>/reject/            AdminAccessRequestRejectView
+       - Reject access request
+       - Auth: Required (Admin)
+
+POST   /admin/<uuid:id>/revoke/            AdminAccessRequestRevokeView
+       - Revoke granted access
+       - Auth: Required (Admin)
+
+================================================================================
+                        ✅ FAVORITES ENDPOINTS
+================================================================================
+
+Base URL: /api/v1/favorites/
+
+POST   /                                   FavoriteCreateView
+       - Add to favorites
+       - Requires: project_id
+       - Auth: Required
+
+GET    /                                   FavoriteListView
+       - List favorites
+       - Auth: Required
+
+DELETE /<uuid:id>/                         FavoriteDeleteView
+       - Remove from favorites
+       - Auth: Required
+
+================================================================================
+                        ✅ DASHBOARD ENDPOINTS
+================================================================================
+
+Base URL: /api/v1/dashboard/
+
+GET    /developer/                         DeveloperDashboardView
+       - Developer dashboard data
+       - Auth: Required (Developer)
+
+GET    /investor/                          InvestorDashboardView
+       - Investor dashboard data
+       - Auth: Required (Investor)
+
+GET    /admin/                             AdminDashboardView
+       - Admin dashboard data
+       - Auth: Required (Admin)
+
+================================================================================
+                        ✅ AUDIT ENDPOINTS
+================================================================================
+
+Base URL: /api/v1/audit/
+
+GET    /admin/audit-logs/                  AdminAuditLogListView
+       - List all audit logs
+       - Auth: Required (Admin)
+
+================================================================================
+                     ✅ NOTIFICATIONS ENDPOINTS
+================================================================================
+
+Base URL: /api/v1/notifications/
+
+GET    /                                   NotificationListView
+       - List notifications
+       - Auth: Required
+
+PATCH  /<uuid:id>/                         NotificationUpdateView
+       - Mark as read
+       - Auth: Required
+
+DELETE /<uuid:id>/                         NotificationDeleteView
+       - Delete notification
+       - Auth: Required
+
+================================================================================
+                      ✅ AUTHENTICATION ENDPOINTS
+================================================================================
+
+Base URL: /api/v1/auth/
+
+POST   /register/                          UserRegisterView
+       - Register new user
+       - Requires: email, password, first_name, last_name
+       - Auth: Not required
+
+POST   /login/                             UserLoginView
+       - Login user
+       - Requires: email, password
+       - Returns: access, refresh tokens
+       - Auth: Not required
+
+POST   /logout/                            UserLogoutView
+       - Logout user
+       - Auth: Required
+
+POST   /refresh/                           TokenRefreshView
+       - Refresh access token
+       - Requires: refresh token
+       - Auth: Not required
+
+POST   /verify-email/                      EmailVerifyView
+       - Verify email with code
+       - Requires: email, code
+       - Auth: Not required
+
+GET    /profile/                           UserProfileView
+       - Get user profile
+       - Auth: Required
+
+================================================================================
+                          COMMON ERRORS & FIXES
+================================================================================
+
+405 Method Not Allowed
+- /projects/ (GET) → Use /projects/my/ instead
+- /projects/ (POST) → Correct endpoint
+
+404 Not Found
+- /audit-logs/ → Should be /audit/admin/audit-logs/
+- /portfolio/ → Should be /investments/portfolio/summary/
+- /projects/pending/ → Should be /projects/admin/projects/pending/
+
+403 Forbidden
+- Missing or invalid Authorization header
+- Solution: Include "Authorization: Bearer <token>" in all protected requests
+
+400 Bad Request
+- Missing required fields in request body
+- Check serializer requirements in API documentation
+
+================================================================================
+                         AUTHENTICATION REQUIRED
+================================================================================
+
+The following endpoints require Authorization header:
+- All endpoints EXCEPT:
+  - POST /auth/register/
+  - POST /auth/login/
+  - POST /auth/refresh/
+  - POST /auth/verify-email/
+  - GET /projects/ (list)
+  - GET /projects/<id>/ (detail)
+  - GET /projects/browse/
+  - POST /projects/compare/
+  - GET /projects/<id>/detail/
+
+Header format:
+Authorization: Bearer <access_token>
+
+How to get token:
+1. POST /auth/login/ with email and password
+2. Response includes "access" token
+3. Store in localStorage: localStorage.setItem('access_token', token)
+4. Include in all protected requests
+
+================================================================================
+                        RESPONSE FORMATS
+================================================================================
+
+Success Response (200-201):
+{
+  "data": { ... },
+  "status": "success"
+}
+
+Error Response (400-500):
+{
+  "detail": "Error message",
+  "error_code": "ERROR_CODE"
+}
+
+Validation Error (400):
+{
+  "field_name": ["Error message"],
+  "another_field": ["Multiple errors possible"]
+}
+
+================================================================================
+                    SWAGGER/OPENAPI DOCUMENTATION
+================================================================================
+
+Interactive API Documentation: http://localhost:8000/api/swagger/
+ReDoc Documentation: http://localhost:8000/api/redoc/
+Schema JSON: http://localhost:8000/api/schema/
+
+All endpoints, parameters, and response formats are documented in Swagger.
+
+================================================================================
