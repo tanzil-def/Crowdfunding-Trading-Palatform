@@ -7,9 +7,11 @@ from apps.audit.services import log_admin_action
 
 
 IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
-MODEL_3D_EXTENSIONS = ['glb', 'gltf']
+VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi']
+MODEL_EXTENSIONS = ['glb', 'gltf']
 MAX_IMAGE_MB = 5
-MAX_3D_MB = 50
+MAX_VIDEO_MB = 100
+MAX_MODEL_MB = 50
 
 
 def calculate_share_price(total_value, total_shares):
@@ -93,14 +95,24 @@ def validate_media(file, media_type):
                 "file": f"Image file too large. Maximum size: {MAX_IMAGE_MB}MB"
             })
     
-    elif media_type == 'MODEL_3D':
-        if ext not in MODEL_3D_EXTENSIONS:
+    elif media_type == 'VIDEO':
+        if ext not in VIDEO_EXTENSIONS:
             raise ValidationError({
-                "file": f"Unsupported 3D model format. Allowed: {', '.join(MODEL_3D_EXTENSIONS)}"
+                "file": f"Unsupported video format. Allowed: {', '.join(VIDEO_EXTENSIONS)}"
             })
-        if size_mb > MAX_3D_MB:
+        if size_mb > MAX_VIDEO_MB:
             raise ValidationError({
-                "file": f"3D model file too large. Maximum size: {MAX_3D_MB}MB"
+                "file": f"Video file too large. Maximum size: {MAX_VIDEO_MB}MB"
+            })
+    
+    elif media_type == 'MODEL':
+        if ext not in MODEL_EXTENSIONS:
+            raise ValidationError({
+                "file": f"Unsupported 3D model format. Allowed: {', '.join(MODEL_EXTENSIONS)}"
+            })
+        if size_mb > MAX_MODEL_MB:
+            raise ValidationError({
+                "file": f"3D model file too large. Maximum size: {MAX_MODEL_MB}MB"
             })
     else:
         raise ValidationError({"media_type": "Invalid media type"})

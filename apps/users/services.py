@@ -29,7 +29,10 @@ def register_user(validated_data):
     """
     if User.objects.filter(email=validated_data['email'].lower()).exists():
         raise ResourceConflictError("A user with this email already exists.")
-        
+    
+    # Remove password_confirm if present (it's only for validation)
+    validated_data.pop('password_confirm', None)
+    
     user = User.objects.create_user(**validated_data)
     send_verification_email(user)
     return user

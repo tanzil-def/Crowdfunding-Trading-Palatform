@@ -1,5 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
@@ -56,6 +57,12 @@ class InvestmentInitiateView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, IsInvestor]
     serializer_class = InitiateInvestmentSerializer
 
+    @extend_schema(
+        responses=InvestmentInitiateResponseSerializer,
+        description="Initiate investment process for an approved project. \n\n"
+                    "Backend uses atomic database transaction with row-level locking "
+                    "(select_for_update) to prevent overselling under concurrent requests."
+    )
     def post(self, request):
         # Validate request data
         serializer = self.get_serializer(data=request.data)
@@ -127,6 +134,12 @@ class PaymentCallbackView(generics.GenericAPIView):
     permission_classes = [AllowAny]
     serializer_class = PaymentCallbackSerializer
 
+    @extend_schema(
+        description="Payment gateway webhook endpoint. \n\n"
+                    "This is a webhook endpoint. In production: MUST verify gateway signature "
+                    "(e.g. X-Signature header) before processing. Currently documented as "
+                    "unauthenticated for sandbox/testing only."
+    )
     def post(self, request):
         # Validate callback data
         serializer = self.get_serializer(data=request.data)
@@ -208,6 +221,9 @@ class MyInvestmentsListView(generics.ListAPIView):
         ).order_by('-created_at')
 
 
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, OpenApiTypes
+
+
 class InvestmentDetailView(generics.RetrieveAPIView):
     """
     GET /api/v1/investments/{id}/
@@ -223,6 +239,38 @@ class InvestmentDetailView(generics.RetrieveAPIView):
     serializer_class = SharePurchaseDetailSerializer
     permission_classes = [IsAuthenticated, IsInvestor]
     lookup_field = 'id'
+
+    @extend_schema(
+        examples=[
+            OpenApiExample(
+                'Investment Detail Example',
+                value={
+                    "success": True,
+                    "message": "Success",
+                    "data": {
+                        "id": "71b7d9e6-f29a-46e0-9899-f0dd317403a7",
+                        "project_id": "8d4594d3-7a6c-430d-bfbe-d521316deba2",
+                        "project_title": "Green Energy Park",
+                        "project_status": "APPROVED",
+                        "project_total_shares": 1000,
+                        "project_shares_sold": 450,
+                        "shares_purchased": 10,
+                        "price_per_share": "1500.00",
+                        "total_amount": "15000.00",
+                        "payment_details": {
+                            "reference_id": "TXN-12345",
+                            "status": "SUCCESS",
+                            "processed_at": "2026-01-20T10:00:00Z"
+                        },
+                        "created_at": "2026-01-20T10:00:00Z"
+                    }
+                },
+                response_only=True,
+            )
+        ]
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
         """
@@ -254,6 +302,24 @@ class InvestorPortfolioSummaryView(generics.GenericAPIView):
     serializer_class = PortfolioSummarySerializer
     permission_classes = [IsAuthenticated, IsInvestor]
 
+    @extend_schema(
+        examples=[
+            OpenApiExample(
+                'Portfolio Summary Example',
+                value={
+                    "success": True,
+                    "message": "Portfolio summary retrieved successfully",
+                    "data": {
+                        "total_invested": "250000.75",
+                        "projects_invested": 12,
+                        "total_shares_owned": 1500,
+                        "investment_count": 24
+                    }
+                },
+                response_only=True,
+            )
+        ]
+    )
     def get(self, request):
         # Call service layer for portfolio summary
         summary = get_investor_portfolio_summary(request.user)
@@ -288,6 +354,40 @@ class AdminPaymentTransactionListView(generics.ListAPIView):
     """
     serializer_class = PaymentTransactionSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+
+    @extend_schema(
+        examples=[
+            OpenApiExample(
+                'Admin Transactions Example',
+                value={
+                    "success": True,
+                    "message": "Success",
+                    "data": {
+                        "count": 1,
+                        "next": None,
+                        "previous": None,
+                        "results": [
+                            {
+                                "id": "92f7d9e6-f29a-46e0-9899-f0dd317403a7",
+                                "reference_id": "TXN-887766",
+                                "investor_email": "i***r@example.com",
+                                "project_title": "Green Energy Park",
+                                "amount": "5000.00",
+                                "status": "SUCCESS",
+                                "has_share_purchase": True,
+                                "failure_reason": None,
+                                "created_at": "2026-01-20T11:00:00Z",
+                                "processed_at": "2026-01-20T11:05:00Z"
+                            }
+                        ]
+                    }
+                },
+                response_only=True,
+            )
+        ]
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
     filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
     search_fields = ['reference_id', 'investor__email', 'project__title']
     ordering_fields = ['created_at', 'amount', 'status']

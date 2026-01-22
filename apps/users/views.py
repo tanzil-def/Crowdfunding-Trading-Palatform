@@ -1,4 +1,5 @@
 from rest_framework import generics, status, serializers
+from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -12,7 +13,8 @@ from .serializers import (
     EmailVerificationSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
-    UserProfileSerializer
+    UserProfileSerializer,
+    TokenResponseSerializer
 )
 from .services import (
     register_user,
@@ -44,6 +46,24 @@ class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
     
+    @extend_schema(
+        examples=[
+            OpenApiExample(
+                'Registration Success Example',
+                value={
+                    "success": True,
+                    "message": "Registration successful. Please check your email to verify your account.",
+                    "data": {
+                        "email": "investor@example.com",
+                        "first_name": "John",
+                        "last_name": "Doe",
+                        "role": "INVESTOR"
+                    }
+                },
+                response_only=True,
+            )
+        ]
+    )
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -84,6 +104,29 @@ class UserLoginView(generics.GenericAPIView):
     serializer_class = UserLoginSerializer
     permission_classes = [AllowAny]
     
+    @extend_schema(
+        responses=TokenResponseSerializer,
+        examples=[
+            OpenApiExample(
+                'Login Success Example',
+                value={
+                    "success": True,
+                    "message": "Login successful",
+                    "data": {
+                        "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                        "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                        "user": {
+                            "email": "investor@example.com",
+                            "first_name": "John",
+                            "last_name": "Doe",
+                            "role": "INVESTOR"
+                        }
+                    }
+                },
+                response_only=True,
+            )
+        ]
+    )
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -261,6 +304,7 @@ class GoogleOAuthView(generics.GenericAPIView):
     serializer_class = GoogleOAuthSerializer
     permission_classes = [AllowAny]
     
+    @extend_schema(responses=TokenResponseSerializer)
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -15,11 +15,16 @@ class NotificationListView(generics.ListAPIView):
             return Notification.objects.none()
         return Notification.objects.filter(user=self.request.user)
 
+from drf_spectacular.utils import extend_schema
+
 class NotificationMarkReadView(generics.GenericAPIView):
     serializer_class = NotificationSerializer  # Added to satisfy Swagger
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, id):
+    @extend_schema(
+        description="Idempotent: Marks notification as read. Repeated calls are safe."
+    )
+    def patch(self, request, id):
         notification = get_object_or_404(Notification, id=id, user=request.user)
         notification.is_read = True
         notification.save(update_fields=['is_read'])

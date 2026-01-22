@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_serializer, OpenApiExample
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import User
@@ -102,6 +103,17 @@ class UserLoginSerializer(serializers.Serializer):
     )
 
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            'Google OAuth Example',
+            value={
+                "token": "google-oauth-identity-token-string",
+                "role": "INVESTOR"
+            }
+        )
+    ]
+)
 class GoogleOAuthSerializer(serializers.Serializer):
     """
     Google OAuth serializer.
@@ -164,6 +176,24 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return attrs
 
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            'User Profile Example',
+            value={
+                "id": "u1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3",
+                "email": "user@example.com",
+                "first_name": "Jane",
+                "last_name": "Smith",
+                "full_name": "Jane Smith",
+                "role": "DEVELOPER",
+                "auth_provider": "email",
+                "is_email_verified": True,
+                "date_joined": "2026-01-20T10:00:00Z"
+            }
+        )
+    ]
+)
 class UserProfileSerializer(serializers.ModelSerializer):
     """
     User profile serializer for viewing user information.

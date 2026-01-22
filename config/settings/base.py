@@ -113,6 +113,10 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
+    "DEFAULT_RENDERER_CLASSES": (
+        "utils.renderers.StandardizedRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ),
 }
 
 SPECTACULAR_SETTINGS = {
@@ -134,7 +138,7 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://127.0.0.1:3000",
+    default="http://localhost:5173,http://127.0.0.1:5173",
     cast=Csv()
 )
 
@@ -162,7 +166,7 @@ DEFAULT_FROM_EMAIL = config(
     default="Crowdfunding Platform <noreply@crowdfunding.com>"
 )
 
-FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173")
 
 EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 30
 PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 15

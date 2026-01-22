@@ -1,39 +1,38 @@
 from django.urls import path
-from .views import (
-    ProjectCreateView,
-    MyProjectListView,
-    ProjectUpdateView,
-    ProjectSubmitView,
-    ProjectMediaUploadView,
-    ProjectMediaListView,
-    AdminPendingProjectListView,
-    AdminProjectApproveView,
-    AdminProjectRejectView,
-    AdminProjectRequestChangesView,
-    InvestorProjectBrowseView,
-    InvestorProjectCompareView,
-    InvestorProjectDetailView,
-)
+from .views import ProjectViewSet, AdminProjectViewSet
 
 urlpatterns = [
-    # Developer - Project Management
-    path('', ProjectCreateView.as_view(), name='project-create'),
-    path('my/', MyProjectListView.as_view(), name='my-projects'),
-    path('<uuid:id>/', ProjectUpdateView.as_view(), name='project-update'),
-    path('<uuid:id>/submit/', ProjectSubmitView.as_view(), name='project-submit'),
+    # General Projects (Create, List/Browse)
+    # Fixes 405 error: Now supports GET for browsing and POST for creating
+    path('', ProjectViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='project-list-create'),
+
+    # Developer Specific
+    path('my/', ProjectViewSet.as_view({'get': 'my_projects'}), name='my-projects'),
     
-    # Developer - Project Media
-    path('<uuid:id>/media/', ProjectMediaUploadView.as_view(), name='project-media-upload'),
-    path('<uuid:id>/media/list/', ProjectMediaListView.as_view(), name='project-media-list'),
+    # Project Update (PUT/PATCH)
+    path('<uuid:pk>/', ProjectViewSet.as_view({
+        'put': 'update',
+        'patch': 'partial_update'
+    }), name='project-update'),
+
+    # Project Actions
+    path('<uuid:pk>/submit/', ProjectViewSet.as_view({'post': 'submit'}), name='project-submit'),
+    path('<uuid:pk>/media/', ProjectViewSet.as_view({'post': 'upload_media'}), name='project-media-upload'),
+    path('<uuid:pk>/media/list/', ProjectViewSet.as_view({'get': 'list_media'}), name='project-media-list'),
     
-    # Admin - Project Review
-    path('admin/projects/pending/', AdminPendingProjectListView.as_view(), name='admin-pending-projects'),
-    path('admin/projects/<uuid:id>/approve/', AdminProjectApproveView.as_view(), name='admin-approve-project'),
-    path('admin/projects/<uuid:id>/reject/', AdminProjectRejectView.as_view(), name='admin-reject-project'),
-    path('admin/projects/<uuid:id>/request-changes/', AdminProjectRequestChangesView.as_view(), name='admin-request-changes'),
-    
-    # Investor - Project Discovery
-    path('browse/', InvestorProjectBrowseView.as_view(), name='investor-browse-projects'),
-    path('compare/', InvestorProjectCompareView.as_view(), name='investor-compare-projects'),
-    path('<uuid:id>/detail/', InvestorProjectDetailView.as_view(), name='investor-project-detail'),
+    # Investor Specific
+    # Explicit 'detail' path from OAS
+    path('<uuid:pk>/detail/', ProjectViewSet.as_view({'get': 'retrieve'}), name='project-detail'),
+    # Explicit 'browse' path from OAS (Alias to list)
+    path('browse/', ProjectViewSet.as_view({'get': 'list'}), name='investor-browse-projects'),
+    path('compare/', ProjectViewSet.as_view({'get': 'compare'}), name='investor-compare-projects'),
+
+    # Admin Routes
+    path('admin/projects/pending/', AdminProjectViewSet.as_view({'get': 'pending_projects'}), name='admin-pending-projects'),
+    path('admin/projects/<uuid:pk>/approve/', AdminProjectViewSet.as_view({'post': 'approve'}), name='admin-approve-project'),
+    path('admin/projects/<uuid:pk>/reject/', AdminProjectViewSet.as_view({'post': 'reject'}), name='admin-reject-project'),
+    path('admin/projects/<uuid:pk>/request-changes/', AdminProjectViewSet.as_view({'post': 'request_changes'}), name='admin-request-changes'),
 ]

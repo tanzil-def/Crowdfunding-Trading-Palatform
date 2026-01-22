@@ -2,6 +2,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
 
 from .models import Favorite
 from .serializers import (
@@ -20,11 +21,17 @@ class FavoriteCreateView(generics.CreateAPIView):
         serializer.save(investor=self.request.user)
 
     def create(self, request, *args, **kwargs):
-        super().create(request, *args, **kwargs)
-        return Response({
-            "success": True,
-            "message": "Project added to favorites"
-        }, status=status.HTTP_201_CREATED)
+        try:
+            super().create(request, *args, **kwargs)
+            return Response({
+                "success": True,
+                "message": "Project added to favorites"
+            }, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response({
+                "success": False,
+                "message": "Project is already in your favorites"
+            }, status=status.HTTP_409_CONFLICT)
 
 
 

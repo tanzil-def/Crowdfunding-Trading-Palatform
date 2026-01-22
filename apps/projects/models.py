@@ -44,7 +44,7 @@ class Project(models.Model):
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
     
-    restricted_fields = models.JSONField(default=dict, blank=True)
+    restricted_fields = models.JSONField(default=list, blank=True)
     is_3d_restricted = models.BooleanField(default=False)
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -75,7 +75,8 @@ class Project(models.Model):
 class ProjectMedia(models.Model):
     MEDIA_TYPE_CHOICES = (
         ('IMAGE', 'Image'),
-        ('MODEL_3D', '3D Model'),
+        ('VIDEO', 'Video'),
+        ('MODEL', '3D Model'),
     )
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
