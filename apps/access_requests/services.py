@@ -1,6 +1,5 @@
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
-from apps.notifications.services import create_notification
 from apps.audit.services import log_admin_action
 
 def approve_access_request(access_request, admin_user):
@@ -10,12 +9,9 @@ def approve_access_request(access_request, admin_user):
     access_request.decided_by = admin_user
     access_request.save(update_fields=['status', 'decided_by'])
 
-    create_notification(
-        user=access_request.investor,
-        notification_type='ACCESS',
-        title='Access Request Approved',
-        message=f"Your access request for project '{access_request.project.title}' was approved."
-    )
+    # Notify investor via event hook
+    from apps.notifications.services import notify_investor_access_approved
+    notify_investor_access_approved(access_request)
 
     log_admin_action(
         admin_user=admin_user,
@@ -36,12 +32,9 @@ def reject_access_request(access_request, admin_user, reason=None):
     access_request.decided_by = admin_user
     access_request.save(update_fields=['status', 'reason', 'decided_by'])
 
-    create_notification(
-        user=access_request.investor,
-        notification_type='ACCESS',
-        title='Access Request Rejected',
-        message=f"Your access request for project '{access_request.project.title}' was rejected. Reason: {reason or 'No reason provided'}"
-    )
+    # Notify investor via event hook
+    from apps.notifications.services import notify_investor_access_rejected
+    notify_investor_access_rejected(access_request, reason)
 
     log_admin_action(
         admin_user=admin_user,
@@ -63,12 +56,9 @@ def revoke_access_request(access_request, admin_user, reason=None):
     access_request.decided_by = admin_user
     access_request.save(update_fields=['status', 'reason', 'decided_by'])
 
-    create_notification(
-        user=access_request.investor,
-        notification_type='ACCESS',
-        title='Access Revoked',
-        message=f"Your access for project '{access_request.project.title}' has been revoked. Reason: {reason or 'No reason provided'}"
-    )
+    # Notify investor via event hook
+    from apps.notifications.services import notify_investor_access_revoked
+    notify_investor_access_revoked(access_request, admin_user)
 
     log_admin_action(
         admin_user=admin_user,
@@ -81,3 +71,4 @@ def revoke_access_request(access_request, admin_user, reason=None):
             "reason": reason
         }
     )
+

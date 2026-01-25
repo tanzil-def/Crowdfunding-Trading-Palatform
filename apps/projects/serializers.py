@@ -388,6 +388,7 @@ class InvestorProjectDetailSerializer(serializers.ModelSerializer):
         return data
 
 
+
 class ProjectActionResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
@@ -399,3 +400,102 @@ class ProjectRejectRequestSerializer(serializers.Serializer):
 
 class ProjectChangesRequestSerializer(serializers.Serializer):
     note = serializers.CharField(required=False, help_text="Note for developer")
+
+
+class ProjectComparisonSerializer(serializers.ModelSerializer):
+    """
+    Serializer for comparator feature - displays projects side by side.
+    Respects restricted field access control.
+    """
+    remaining_shares = serializers.IntegerField(read_only=True, help_text="Remaining shares available")
+    funding_percentage = serializers.FloatField(read_only=True, help_text="Funding percentage (0-100)")
+    has_access = serializers.SerializerMethodField(help_text="Whether user has access to restricted fields")
+    developer_name = serializers.CharField(source='developer.get_full_name', read_only=True)
+    
+    class Meta:
+        model = Project
+        fields = (
+            'id', 'title', 'description', 'category', 'duration_days',
+            'total_project_value', 'total_shares', 'share_price',
+            'shares_sold', 'remaining_shares', 'funding_percentage',
+            'developer_name', 'restricted_fields', 'is_3d_restricted',
+            'has_access', 'created_at'
+        )
+    
+    @extend_schema_field(serializers.BooleanField())
+    def get_has_access(self, obj):
+        """
+        Check if investor has approved access to restricted data.
+        """
+        user = self.context['request'].user
+        
+        if user.role == 'ADMIN' or user == obj.developer:
+            return True
+        
+        if user.role == 'INVESTOR':
+            from apps.access_requests.models import AccessRequest
+            return AccessRequest.objects.filter(
+                investor=user,
+                project=obj,
+                status='APPROVED'
+            ).exists()
+        
+        return False
+    
+    def to_representation(self, instance):
+        """
+        Filter restricted fields based on user access.
+        """
+        data = super().to_representation(instance)
+        user = self.context['request'].user
+        has_access = data.get('has_access', False)
+        
+        # If user doesn't have access, hide restricted fields
+        if not has_access and instance.restricted_fields:
+            for field in instance.restricted_fields or []:
+                data[field] = None
+        
+        return data
+
+
+class ProjectComparatorRequestSerializer(serializers.Serializer):
+    """
+    Request serializer for comparator endpoint.
+    Validates project IDs (2-4 projects required).
+    """
+    project_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        min_length=2,
+        max_length=4,
+        help_text="List of 2-4 project UUIDs to compare"
+    )
+    
+    def validate_project_ids(self, value):
+        """Ensure projects exist and are approved"""
+        from .models import Project
+        
+        projects = Project.objects.filter(id__in=value, status='APPROVED')
+        
+        if projects.count() != len(value):
+            raise serializers.ValidationError(
+                f"Some projects don't exist or aren't approved. Found {projects.count()} of {len(value)}."
+            )
+        
+        return value
+
+
+class ProjectComparatorResponseSerializer(serializers.Serializer):
+    """
+    Response serializer for comparator feature.
+    Contains projects with access control applied.
+    """
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    data = serializers.DictField(
+        child=serializers.ListField(child=ProjectComparisonSerializer()),
+        help_text="Comparison data with 'projects' key containing project list"
+    )
+    restricted_fields = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="List of fields that require approved access to view"
+    )

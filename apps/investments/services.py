@@ -258,32 +258,12 @@ def process_successful_payment(payment, gateway_payload, shares_requested):
         project.refresh_from_db()
         
         # Notify investor of successful payment
-        create_notification(
-            user=payment.investor,
-            notification_type='PAYMENT_SUCCESS',
-            title='Investment Successful',
-            message=f'You have successfully purchased {shares_requested} shares in "{project.title}".',
-            metadata={
-                'project_id': str(project.id),
-                'share_purchase_id': str(share_purchase.id),
-                'shares': shares_requested,
-                'amount': str(payment.amount)
-            }
-        )
+        from apps.notifications.services import notify_investor_payment_success
+        notify_investor_payment_success(payment.investor, payment)
         
-        # Notify developer of new investment
-        create_notification(
-            user=project.developer,
-            notification_type='NEW_INVESTMENT',
-            title='New Investment Received',
-            message=f'{payment.investor.email} invested in your project "{project.title}".',
-            metadata={
-                'project_id': str(project.id),
-                'investor_id': str(payment.investor.id),
-                'shares': shares_requested,
-                'amount': str(payment.amount)
-            }
-        )
+        # Notify developer of new investment (optional - can implement later)
+        # from apps.notifications.services import notify_developer_investment_received
+        # notify_developer_investment_received(project.developer, share_purchase)
         
         # Create audit log
         log_admin_action(
@@ -325,18 +305,8 @@ def process_failed_payment(payment, gateway_payload, failure_reason=None):
     payment.save(update_fields=['status', 'gateway_payload', 'failure_reason', 'processed_at'])
     
     # Notify investor of payment failure
-    create_notification(
-        user=payment.investor,
-        notification_type='PAYMENT_FAILED',
-        title='Payment Failed',
-        message=f'Your payment for {payment.project.title} could not be processed. Please try again.',
-        metadata={
-            'project_id': str(payment.project.id),
-            'payment_reference': payment.reference_id,
-            'amount': str(payment.amount),
-            'reason': payment.failure_reason
-        }
-    )
+    from apps.notifications.services import notify_investor_payment_failed
+    notify_investor_payment_failed(payment.investor, payment, failure_reason)
     
     # Create audit log
     log_admin_action(

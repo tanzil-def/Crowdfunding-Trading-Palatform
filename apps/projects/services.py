@@ -60,22 +60,15 @@ def validate_project_submittable(project):
 def submit_project_for_review(project):
     """
     Submit project for admin review.
+    Triggers PROJECT_SUBMITTED notifications to all admins via WebSocket.
     """
     validate_project_submittable(project)
     project.status = 'PENDING'
     project.save(update_fields=['status'])
 
-    # Notify admins
-    from apps.notifications.services import create_notification
-    from apps.users.models import User
-    admins = User.objects.filter(role='ADMIN', is_active=True)
-    for admin in admins:
-        create_notification(
-            user=admin,
-            notification_type='PROJECT',
-            title='New Project Submission',
-            message=f"New project '{project.title}' submitted for review by {project.developer.email}."
-        )
+    # Notify admins via event hook
+    from apps.notifications.services import notify_admins_project_submitted
+    notify_admins_project_submitted(project)
 
 
 def validate_media(file, media_type):
@@ -122,6 +115,7 @@ def validate_media(file, media_type):
 def admin_approve_project(project, admin_user):
     """
     Approve a pending project.
+    Triggers PROJECT_APPROVED notification to developer via WebSocket.
     """
     if project.status != 'PENDING':
         raise ValidationError({"detail": "Only pending projects can be approved"})
@@ -140,19 +134,16 @@ def admin_approve_project(project, admin_user):
         }
     )
 
-    from apps.notifications.services import create_notification
-    create_notification(
-        user=project.developer,
-        notification_type='PROJECT',
-        title='Project Approved',
-        message=f"Your project '{project.title}' has been approved!"
-    )
+    # Notify developer via event hook
+    from apps.notifications.services import notify_developer_project_approved
+    notify_developer_project_approved(project, admin_user)
 
 
 @transaction.atomic
 def admin_reject_project(project, admin_user, reason=None):
     """
     Reject a pending project with optional reason.
+    Triggers PROJECT_REJECTED notification to developer via WebSocket.
     """
     if project.status != 'PENDING':
         raise ValidationError({"detail": "Only pending projects can be rejected"})
@@ -172,19 +163,16 @@ def admin_reject_project(project, admin_user, reason=None):
         }
     )
 
-    from apps.notifications.services import create_notification
-    create_notification(
-        user=project.developer,
-        notification_type='PROJECT',
-        title='Project Rejected',
-        message=f"Your project '{project.title}' was rejected. Reason: {reason or 'No reason provided'}"
-    )
+    # Notify developer via event hook
+    from apps.notifications.services import notify_developer_project_rejected
+    notify_developer_project_rejected(project, admin_user, reason)
 
 
 @transaction.atomic
 def admin_request_changes(project, admin_user, note=None):
     """
     Request changes on a pending project.
+    Triggers PROJECT_CHANGES_REQUESTED notification to developer via WebSocket.
     """
     if project.status != 'PENDING':
         raise ValidationError({"detail": "Only pending projects can request changes"})
@@ -204,13 +192,9 @@ def admin_request_changes(project, admin_user, note=None):
         }
     )
 
-    from apps.notifications.services import create_notification
-    create_notification(
-        user=project.developer,
-        notification_type='PROJECT',
-        title='Changes Requested',
-        message=f"Changes requested for project '{project.title}'. Note: {note or 'No note provided'}"
-    )
+    # Notify developer via event hook
+    from apps.notifications.services import notify_developer_project_changes_requested
+    notify_developer_project_changes_requested(project, admin_user, note)
 
 
 def filter_restricted_fields(project_data, user, project):

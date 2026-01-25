@@ -15,7 +15,9 @@ from .serializers import (
     ProjectMediaRequestSerializer,
     AdminProjectListSerializer, InvestorProjectListSerializer,
     InvestorProjectDetailSerializer, ProjectActionResponseSerializer,
-    ProjectRejectRequestSerializer, ProjectChangesRequestSerializer
+    ProjectRejectRequestSerializer, ProjectChangesRequestSerializer,
+    ProjectComparisonSerializer, ProjectComparatorRequestSerializer,
+    ProjectComparatorResponseSerializer
 )
 from .permissions import IsDeveloper, IsProjectOwner, IsAdmin, IsInvestor
 from .services import (
@@ -179,7 +181,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if self.action in ['update', 'partial_update', 'submit', 'upload_media']:
             return [IsAuthenticated(), IsDeveloper(), IsProjectOwner()]
         if self.action in ['list', 'retrieve', 'compare', 'list_media']:
-            return [IsAuthenticated()]  # Allow logged in users to browse
+            return [IsAuthenticated()]  
         return [IsAuthenticated()]
 
     def list(self, request, *args, **kwargs):
@@ -251,7 +253,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         parameters=[
             OpenApiParameter(
                 name='project_ids',
-                description='Comma-separated list of project IDs to compare (min 2, max 4)',
+                description='Comma-separated list of project IDs to compare (min 2, max 4). Example: 71b7d9e6-f29a-46e0-9899-f0dd317403a7,8d4594d3-7a6c-430d-bfbe-d521316deba2',
                 required=True,
                 type=OpenApiTypes.STR
             )
@@ -261,66 +263,121 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 'Project Comparison Example',
                 value={
                     "success": True,
-                    "message": "Success",
-                    "data": [
-                        {
-                            "id": "8d4594d3-7a6c-430d-bfbe-d521316deba2",
-                            "title": "Green Energy Park",
-                            "category": "Sustainability",
-                            "total_project_value": "1000000.00",
-                            "share_price": "1000.00",
-                            "funding_percentage": 45.0,
-                            "remaining_shares": 550
-                        },
-                        {
-                            "id": "71b7d9e6-f29a-46e0-9899-f0dd317403a7",
-                            "title": "Urban Tech Hub",
-                            "category": "Technology",
-                            "total_project_value": "2500000.00",
-                            "share_price": "2500.00",
-                            "funding_percentage": 80.0,
-                            "remaining_shares": 200
-                        }
-                    ]
+                    "message": "Projects comparison retrieved successfully",
+                    "data": {
+                        "projects": [
+                            {
+                                "id": "71b7d9e6-f29a-46e0-9899-f0dd317403a7",
+                                "title": "Green Energy Park",
+                                "category": "Sustainability",
+                                "duration_days": 365,
+                                "total_project_value": "1000000.00",
+                                "total_shares": 1000,
+                                "share_price": "1000.00",
+                                "shares_sold": 450,
+                                "remaining_shares": 550,
+                                "funding_percentage": 45.0,
+                                "developer_name": "John Developer",
+                                "restricted_fields": ["financial_report"],
+                                "is_3d_restricted": True,
+                                "has_access": False,
+                                "created_at": "2026-01-20T10:00:00Z"
+                            },
+                            {
+                                "id": "8d4594d3-7a6c-430d-bfbe-d521316deba2",
+                                "title": "Urban Tech Hub",
+                                "category": "Technology",
+                                "duration_days": 540,
+                                "total_project_value": "2500000.00",
+                                "total_shares": 2500,
+                                "share_price": "1000.00",
+                                "shares_sold": 2000,
+                                "remaining_shares": 500,
+                                "funding_percentage": 80.0,
+                                "developer_name": "Jane Developer",
+                                "restricted_fields": None,
+                                "is_3d_restricted": False,
+                                "has_access": True,
+                                "created_at": "2026-01-18T14:30:00Z"
+                            }
+                        ],
+                        "restricted_fields": ["financial_report", "architectural_plans"]
+                    }
                 },
                 response_only=True,
             )
-        ]
+        ],
+        responses={200: ProjectComparatorResponseSerializer}
     )
     @action(detail=False, methods=['get'], url_path='compare')
     def compare(self, request):
         """
-        Compare multiple approved projects side-by-side.
+        Compare 2-4 approved projects side-by-side.
         
-        For Investor and unauthenticated users: defaults to status=APPROVED only.
-        Admin users can see all statuses via explicit status query param.
+        Enforces access control: restricted fields only shown if investor has approved access.
+        
+        Query Parameters:
+        - project_ids: Comma-separated list of 2-4 project UUIDs
+        
+        Example: GET /api/v1/projects/compare/?project_ids=id1,id2,id3
+        
+        Returns:
+        - projects: Array of projects with restricted field access control applied
+        - restricted_fields: List of all fields that have restrictions across projects
         """
-        # Support both 'ids' and 'project_ids' for backward compatibility
+        # Get project IDs from query params
         ids = request.query_params.get("project_ids") or request.query_params.get("ids", "")
         
         if not ids:
             return error_response(
-                message="Please provide 'project_ids' (comma-separated 2-4 IDs)",
+                message="'project_ids' parameter is required (comma-separated list of 2-4 project UUIDs)",
                 status_code=status.HTTP_400_BAD_REQUEST
             )
         
+        # Parse and validate IDs
         id_list = [i.strip() for i in ids.split(",") if i.strip()]
+        
         if len(id_list) < 2:
-             return error_response(
-                message="Please provide at least 2 valid project IDs for comparison",
+            return error_response(
+                message="Please provide at least 2 project IDs for comparison",
                 status_code=status.HTTP_400_BAD_REQUEST
             )
         
         if len(id_list) > 4:
-            id_list = id_list[:4]
-            
-        queryset = self.get_queryset().filter(id__in=id_list)
-        serializer = self.get_serializer(queryset, many=True)
+            return error_response(
+                message="Maximum 4 projects can be compared at once",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
         
-        return success_response(data={
-            "count": queryset.count(),
-            "results": serializer.data
-        })
+        # Fetch projects
+        queryset = self.get_queryset().filter(id__in=id_list)
+        
+        if queryset.count() != len(id_list):
+            return error_response(
+                message=f"Some projects not found or not approved. Found {queryset.count()} of {len(id_list)}",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Serialize with access control
+        serializer = ProjectComparisonSerializer(
+            queryset, 
+            many=True, 
+            context={'request': request}
+        )
+        
+        # Collect all restricted fields across projects
+        all_restricted_fields = set()
+        for project in queryset:
+            if project.restricted_fields:
+                all_restricted_fields.update(project.restricted_fields)
+        
+        return success_response(
+            data={
+                "projects": serializer.data,
+                "restricted_fields": list(all_restricted_fields)
+            },
+            message="Projects comparison retrieved successfully"
+        )
 
     @action(detail=True, methods=['post'], url_path='submit')
     def submit(self, request, pk=None):
