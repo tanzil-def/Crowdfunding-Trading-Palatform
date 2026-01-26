@@ -27,3 +27,7 @@ backups/
 
 # Random junk
 et --hard*
+apps/access_requests/tests.py
+apps/notifications/migrations/0005_notificationpreference.py
+apps/users/admin_urls.py
+SRS.md
