@@ -47,3 +47,38 @@ class AdminAccessRequestActionSerializer(serializers.Serializer):
 class AccessRequestActionResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+
+class AdminAccessRequestListSerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source='project.title')
+    requester_email = serializers.EmailField(source='investor.email')
+    project_id = serializers.UUIDField(source='project.id')
+
+    class Meta:
+        model = AccessRequest
+        fields = (
+            'id',
+            'project_id',
+            'project_title',
+            'requester_email',
+            'status',
+            'reason',
+            'created_at',
+        )
+
+
+class DeveloperProjectAccessRequestSerializer(serializers.ModelSerializer):
+    requester_name = serializers.CharField(source='investor.get_full_name', read_only=True)
+    requester_email = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccessRequest
+        fields = ('id', 'requester_name', 'requester_email', 'status', 'reason', 'created_at')
+
+    def get_requester_email(self, obj):
+        email = obj.investor.email
+        if '@' not in email:
+            return email
+        name, domain = email.split('@')
+        return f"{name[0]}***@{domain}"
+

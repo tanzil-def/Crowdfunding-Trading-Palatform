@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Notification
+from .models import Notification, NotificationPreference
 from drf_spectacular.utils import extend_schema_serializer, OpenApiExample
 
 @extend_schema_serializer(
@@ -25,4 +25,16 @@ class NotificationSerializer(serializers.ModelSerializer):
             'message',
             'is_read',
             'created_at'
+        )
+
+
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationPreference
+        fields = (
+            'email_enabled',
+            'in_app_enabled',
+            'project_updates',
+            'investment_updates',
+            'access_updates'
         )

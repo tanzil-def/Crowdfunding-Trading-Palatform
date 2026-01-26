@@ -14,7 +14,9 @@ from .serializers import (
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
     UserProfileSerializer,
-    TokenResponseSerializer
+    TokenResponseSerializer,
+    AdminUserSerializer,
+    AdminUserUpdateSerializer
 )
 from .services import (
     register_user,
@@ -27,8 +29,10 @@ from .services import (
     authenticate_google_oauth,
     logout_user
 )
+from .permissions import IsAdmin
 from utils.responses import success_response, error_response
 from utils.exceptions import APIException
+from apps.audit.services import log_admin_action
 
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -348,3 +352,118 @@ class UserProfileView(generics.RetrieveAPIView):
     
     def get_object(self):
         return self.request.user
+
+
+class AdminUserViewSet(generics.GenericAPIView):
+    """
+    ViewSet for Admin-only user management.
+    """
+    queryset = User.objects.all()
+    serializer_class = AdminUserSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        """List all users"""
+        users = self.get_queryset()
+        
+        # Filtering
+        role = request.query_params.get('role')
+        if role:
+            users = users.filter(role=role)
+            
+        verified = request.query_params.get('is_email_verified')
+        if verified is not None:
+            users = users.filter(is_email_verified=verified.lower() == 'true')
+            
+        active = request.query_params.get('is_active')
+        if active is not None:
+            users = users.filter(is_active=active.lower() == 'true')
+            
+        # Pagination
+        page = self.paginate_queryset(users)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = self.get_serializer(users, many=True)
+        return success_response(data=serializer.data)
+
+
+class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, Update, or Delete user (Admin only).
+    """
+    queryset = User.objects.all()
+    serializer_class = AdminUserSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    lookup_field = 'id'
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return AdminUserUpdateSerializer
+        return AdminUserSerializer
+    
+    def perform_destroy(self, instance):
+        """Soft delete: deactivate user"""
+        instance.is_active = False
+        instance.save()
+        log_admin_action(
+            admin_user=self.request.user,
+            action="USER_DEACTIVATED",
+            entity_type="USER",
+            entity_id=instance.id,
+            metadata={"reason": "Admin soft delete"}
+        )
+        
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+
+class AdminUserVerifyEmailView(generics.GenericAPIView):
+    """
+    Manually verify user email (Admin only).
+    """
+    queryset = User.objects.all()
+    serializer_class = serializers.Serializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    lookup_field = 'id'
+    
+    def post(self, request, id):
+        try:
+            user = self.get_object()
+            user.is_email_verified = True
+            user.save()
+            log_admin_action(
+                admin_user=request.user,
+                action="USER_EMAIL_VERIFIED_MANUALLY",
+                entity_type="USER",
+                entity_id=user.id
+            )
+            return success_response(message=f"Email for {user.email} verified.")
+        except User.DoesNotExist:
+            return error_response(message="User not found", status_code=status.HTTP_404_NOT_FOUND)
+
+
+class AdminUserDeactivateView(generics.GenericAPIView):
+    """
+    Deactivate user (Admin only).
+    """
+    queryset = User.objects.all()
+    serializer_class = serializers.Serializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    lookup_field = 'id'
+    
+    def post(self, request, id):
+        try:
+            user = self.get_object()
+            user.is_active = False
+            user.save()
+            log_admin_action(
+                admin_user=request.user,
+                action="USER_DEACTIVATED_MANUALLY",
+                entity_type="USER",
+                entity_id=user.id
+            )
+            return success_response(message=f"User {user.email} deactivated.")
+        except User.DoesNotExist:
+            return error_response(message="User not found", status_code=status.HTTP_404_NOT_FOUND)

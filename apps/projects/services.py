@@ -197,6 +197,26 @@ def admin_request_changes(project, admin_user, note=None):
     notify_developer_project_changes_requested(project, admin_user, note)
 
 
+@transaction.atomic
+def admin_archive_project(project, admin_user):
+    """
+    Archive a project.
+    """
+    project.status = 'ARCHIVED'
+    project.save(update_fields=['status'])
+    
+    log_admin_action(
+        admin_user=admin_user,
+        action="Archived Project",
+        entity_type="Project",
+        entity_id=project.id,
+        metadata={
+            "title": project.title,
+            "developer_email": project.developer.email
+        }
+    )
+
+
 def filter_restricted_fields(project_data, user, project):
     """
     Remove restricted fields from project data if user doesn't have access.
@@ -215,8 +235,8 @@ def filter_restricted_fields(project_data, user, project):
         if has_access:
             return project_data
     
-    restricted = project.restricted_fields or {}
-    for field in restricted.keys():
+    restricted = project.restricted_fields or []
+    for field in restricted:
         project_data.pop(field, None)
     
     return project_data

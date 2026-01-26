@@ -17,13 +17,18 @@ from .serializers import (
     InvestorProjectDetailSerializer, ProjectActionResponseSerializer,
     ProjectRejectRequestSerializer, ProjectChangesRequestSerializer,
     ProjectComparisonSerializer, ProjectComparatorRequestSerializer,
-    ProjectComparatorResponseSerializer
+    ProjectComparatorResponseSerializer,
+    ProjectInvestmentSerializer,
+    ProjectCategorySerializer
 )
 from .permissions import IsDeveloper, IsProjectOwner, IsAdmin, IsInvestor
 from .services import (
     validate_project_editable, submit_project_for_review,
-    admin_approve_project, admin_reject_project, admin_request_changes
+    admin_approve_project, admin_reject_project, admin_request_changes,
+    admin_archive_project
 )
+from apps.investments.models import SharePurchase
+from django.db.models import Sum, Count
 from utils.pagination import StandardResultsSetPagination
 from utils.responses import success_response, error_response
 
@@ -180,8 +185,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), IsDeveloper()]
         if self.action in ['update', 'partial_update', 'submit', 'upload_media']:
             return [IsAuthenticated(), IsDeveloper(), IsProjectOwner()]
-        if self.action in ['list', 'retrieve', 'compare', 'list_media']:
+        if self.action in ['list', 'retrieve', 'compare', 'list_media', 'categories']:
             return [IsAuthenticated()]  
+        if self.action == 'investments':
+            return [IsAuthenticated(), (IsAdmin | IsProjectOwner)()]
+        return [IsAuthenticated()]
         return [IsAuthenticated()]
 
     def list(self, request, *args, **kwargs):
@@ -500,6 +508,74 @@ class ProjectViewSet(viewsets.ModelViewSet):
             "results": serializer.data
         })
 
+    @action(detail=True, methods=['get'], url_path='investments')
+    def investments(self, request, pk=None):
+        """
+        List all share purchases made in this project.
+        Masks emails for privacy.
+        """
+        project = self.get_object()
+        investments = SharePurchase.objects.filter(project=project)
+        
+        page = self.paginate_queryset(investments)
+        if page is not None:
+            serializer = ProjectInvestmentSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = ProjectInvestmentSerializer(investments, many=True)
+        return success_response(data=serializer.data)
+
+    @action(detail=True, methods=['delete'], url_path='media/(?P<media_id>[^/.]+)')
+    def delete_media(self, request, pk=None, media_id=None):
+        """
+        Delete uploaded media. Only allowed in DRAFT or NEEDS_CHANGES state.
+        """
+        project = self.get_object()
+        validate_project_editable(project)
+        
+        media = get_object_or_404(ProjectMedia, id=media_id, project=project)
+        media.delete()
+        return success_response(message="Media deleted successfully")
+
+    @action(detail=True, methods=['patch'], url_path='media/(?P<media_id>[^/.]+)/toggle-restriction')
+    def toggle_media_restriction(self, request, pk=None, media_id=None):
+        """
+        Toggle restriction on media.
+        """
+        project = self.get_object()
+        validate_project_editable(project)
+        
+        media = get_object_or_404(ProjectMedia, id=media_id, project=project)
+        media.is_restricted = not media.is_restricted
+        media.save()
+        return success_response(
+            data={"id": media.id, "is_restricted": media.is_restricted},
+            message=f"Media restriction updated to {media.is_restricted}"
+        )
+
+    @action(detail=False, methods=['get'], url_path='categories')
+    def categories(self, request):
+        """
+        List all available categories with project counts.
+        """
+        categories = Project.objects.filter(status='APPROVED').values('category').annotate(
+            project_count=Count('id'),
+            total_funding=Sum('shares_sold') * Sum('share_price') / Count('id') # Simplified approximation
+        ).order_by('-project_count')
+        
+        # Proper aggregation for total_funding
+        results = []
+        for cat in categories:
+            cat_projects = Project.objects.filter(category=cat['category'], status='APPROVED')
+            total_funding = sum(p.shares_sold * p.share_price for p in cat_projects)
+            results.append({
+                "name": cat['category'],
+                "project_count": cat['project_count'],
+                "total_funding": total_funding
+            })
+            
+        return success_response(data=results)
+
 
 class AdminProjectViewSet(viewsets.GenericViewSet):
     """
@@ -522,6 +598,46 @@ class AdminProjectViewSet(viewsets.GenericViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return success_response(data=serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        """
+        List all projects (Admin only).
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return success_response(data=serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='archive')
+    def archive(self, request, pk=None):
+        """
+        Archive a project.
+        """
+        project = self.get_object()
+        admin_archive_project(project, request.user)
+        return success_response(message="Project archived.")
+
+    @action(detail=False, methods=['get'], url_path='statistics')
+    def statistics(self, request):
+        """
+        Platform statistics for admin.
+        """
+        from apps.users.models import User
+        total_projects = Project.objects.count()
+        by_status = Project.objects.values('status').annotate(count=Count('id'))
+        total_funding = sum(p.shares_sold * p.share_price for p in Project.objects.all())
+        total_investors = User.objects.filter(role='INVESTOR').count()
+        
+        return success_response(data={
+            "total_projects": total_projects,
+            "by_status": {item['status']: item['count'] for item in by_status},
+            "total_funding": float(total_funding),
+            "total_investors": total_investors
+        })
+
 
     @action(detail=True, methods=['post'], url_path='approve')
     def approve(self, request, pk=None):

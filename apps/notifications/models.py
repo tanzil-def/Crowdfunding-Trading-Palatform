@@ -45,3 +45,16 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.type} - {self.user.email}"
+
+
+class NotificationPreference(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='notification_preference')
+    email_enabled = models.BooleanField(default=True)
+    in_app_enabled = models.BooleanField(default=True)
+    project_updates = models.BooleanField(default=True)
+    investment_updates = models.BooleanField(default=True)
+    access_updates = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f"Preferences for {self.user.email}"
+

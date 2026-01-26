@@ -499,3 +499,32 @@ class ProjectComparatorResponseSerializer(serializers.Serializer):
         child=serializers.CharField(),
         help_text="List of fields that require approved access to view"
     )
+
+
+class ProjectInvestmentSerializer(serializers.Serializer):
+    """
+    Serializer for viewing project investors (Developer/Admin only).
+    """
+    investor_name = serializers.CharField(source='investor.get_full_name', read_only=True)
+    investor_email = serializers.SerializerMethodField()
+    shares_purchased = serializers.IntegerField(read_only=True)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, source='total_amount', read_only=True)
+    invested_at = serializers.DateTimeField(source='created_at', read_only=True)
+
+    @extend_schema_field(serializers.CharField())
+    def get_investor_email(self, obj):
+        """Mask investor email for privacy"""
+        email = obj.investor.email
+        if '@' not in email:
+            return email
+        name, domain = email.split('@')
+        return f"{name[0]}***@{domain}"
+
+
+class ProjectCategorySerializer(serializers.Serializer):
+    """
+    Serializer for project categories.
+    """
+    name = serializers.CharField()
+    project_count = serializers.IntegerField()
+    total_funding = serializers.DecimalField(max_digits=15, decimal_places=2)

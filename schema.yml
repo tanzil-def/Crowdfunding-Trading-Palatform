@@ -44,6 +44,53 @@ paths:
                       projections.
                   summary: Access Request Create Example
           description: ''
+  /api/v1/access-requests/admin/:
+    get:
+      operationId: access_requests_admin_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - APPROVED
+          - PENDING
+          - REJECTED
+          - REVOKED
+        description: |-
+          * `PENDING` - Pending
+          * `APPROVED` - Approved
+          * `REJECTED` - Rejected
+          * `REVOKED` - Revoked
+      tags:
+      - access-requests
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminAccessRequestListList'
+          description: ''
   /api/v1/access-requests/admin/{id}/approve/:
     post:
       operationId: access_requests_admin_approve_create
@@ -182,6 +229,160 @@ paths:
                       created_at: '2026-01-20T14:00:00Z'
                   summary: Access Request List Example
           description: ''
+  /api/v1/admin/users/:
+    get:
+      operationId: admin_users_retrieve
+      description: List all users
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/v1/admin/users/{id}/:
+    get:
+      operationId: admin_users_retrieve_2
+      description: Retrieve, Update, or Delete user (Admin only).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+    put:
+      operationId: admin_users_update
+      description: Retrieve, Update, or Delete user (Admin only).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUserUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUserUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserUpdate'
+          description: ''
+    patch:
+      operationId: admin_users_partial_update
+      description: Retrieve, Update, or Delete user (Admin only).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserUpdate'
+          description: ''
+    delete:
+      operationId: admin_users_destroy
+      description: Retrieve, Update, or Delete user (Admin only).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/users/{id}/deactivate/:
+    post:
+      operationId: admin_users_deactivate_create
+      description: Deactivate user (Admin only).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/admin/users/{id}/verify-email/:
+    post:
+      operationId: admin_users_verify_email_create
+      description: Manually verify user email (Admin only).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/audit/admin/audit-logs/:
     get:
       operationId: audit_admin_audit_logs_list
@@ -273,6 +474,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GoogleOAuthRequest'
+            examples:
+              GoogleOAuthExample:
+                value:
+                  token: google-oauth-identity-token-string
+                  role: INVESTOR
+                summary: Google OAuth Example
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/GoogleOAuthRequest'
@@ -465,6 +672,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserProfile'
+              examples:
+                UserProfileExample:
+                  value:
+                    id: u1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                    email: user@example.com
+                    first_name: Jane
+                    last_name: Smith
+                    full_name: Jane Smith
+                    role: DEVELOPER
+                    auth_provider: email
+                    is_email_verified: true
+                    date_joined: '2026-01-20T10:00:00Z'
+                  summary: User Profile Example
           description: ''
   /api/v1/auth/register/:
     post:
@@ -1197,6 +1417,88 @@ paths:
                     created_at: '2026-01-20T15:30:00Z'
                   summary: Notification Example
           description: ''
+  /api/v1/notifications/mark-all-read/:
+    post:
+      operationId: notifications_mark_all_read_create
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/notifications/preferences/:
+    get:
+      operationId: notifications_preferences_retrieve
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreference'
+          description: ''
+    put:
+      operationId: notifications_preferences_update
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferenceRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreference'
+          description: ''
+    patch:
+      operationId: notifications_preferences_partial_update
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationPreferenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationPreferenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationPreferenceRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreference'
+          description: ''
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count_retrieve
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/projects/:
     get:
       operationId: projects_list
@@ -1495,6 +1797,46 @@ paths:
                       created_at: '2026-01-20T10:00:00Z'
                   summary: Project Detail Example
           description: ''
+  /api/v1/projects/{id}/investments/:
+    get:
+      operationId: projects_investments_retrieve
+      description: |-
+        List all share purchases made in this project.
+        Masks emails for privacy.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectList'
+              examples:
+                DeveloperProjectListExample:
+                  value:
+                    id: a1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                    title: Solar Field Alpha
+                    category: Energy
+                    status: APPROVED
+                    duration_days: 365
+                    total_project_value: '750000.00'
+                    total_shares: 750
+                    share_price: '1000.00'
+                    shares_sold: 500
+                    remaining_shares: 250
+                    funding_percentage: 66.67
+                    created_at: '2026-01-20T08:00:00Z'
+                  summary: Developer Project List Example
+          description: ''
   /api/v1/projects/{id}/media/:
     post:
       operationId: projects_media_create
@@ -1528,6 +1870,101 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectMediaRequest'
+          description: ''
+  /api/v1/projects/{id}/media/{media_id}/:
+    delete:
+      operationId: projects_media_destroy
+      description: Delete uploaded media. Only allowed in DRAFT or NEEDS_CHANGES state.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: media_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/projects/{id}/media/{media_id}/toggle-restriction/:
+    patch:
+      operationId: projects_media_toggle_restriction_partial_update
+      description: Toggle restriction on media.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: media_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectListRequest'
+            examples:
+              DeveloperProjectListExample:
+                value:
+                  id: a1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                  title: Solar Field Alpha
+                  category: Energy
+                  status: APPROVED
+                  duration_days: 365
+                  total_project_value: '750000.00'
+                  total_shares: 750
+                  share_price: '1000.00'
+                  shares_sold: 500
+                  remaining_shares: 250
+                  funding_percentage: 66.67
+                  created_at: '2026-01-20T08:00:00Z'
+                summary: Developer Project List Example
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectListRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectList'
+              examples:
+                DeveloperProjectListExample:
+                  value:
+                    id: a1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                    title: Solar Field Alpha
+                    category: Energy
+                    status: APPROVED
+                    duration_days: 365
+                    total_project_value: '750000.00'
+                    total_shares: 750
+                    share_price: '1000.00'
+                    shares_sold: 500
+                    remaining_shares: 250
+                    funding_percentage: 66.67
+                    created_at: '2026-01-20T08:00:00Z'
+                  summary: Developer Project List Example
           description: ''
   /api/v1/projects/{id}/media/list/:
     get:
@@ -1628,10 +2065,178 @@ paths:
                     created_at: '2026-01-20T08:00:00Z'
                   summary: Developer Project List Example
           description: ''
+  /api/v1/projects/{project_id}/access-requests/:
+    get:
+      operationId: projects_access_requests_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDeveloperProjectAccessRequestList'
+          description: ''
+  /api/v1/projects/admin/projects/:
+    get:
+      operationId: projects_admin_projects_list
+      description: List all projects (Admin only).
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminProjectListList'
+              examples:
+                AdminProjectListExample:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - id: d1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                      title: Wind Farm Beta
+                      category: Energy
+                      status: PENDING
+                      duration_days: 180
+                      developer_email: d***r@example.com
+                      developer_name: John Doe
+                      total_project_value: '2500000.00'
+                      total_shares: 2500
+                      share_price: '1000.00'
+                      created_at: '2026-01-20T09:00:00Z'
+                  summary: Admin Project List Example
+          description: ''
   /api/v1/projects/admin/projects/{id}/approve/:
     post:
       operationId: projects_admin_projects_approve_create
       description: Approve a pending project.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminProjectListRequest'
+            examples:
+              AdminProjectListExample:
+                value:
+                  id: d1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                  title: Wind Farm Beta
+                  category: Energy
+                  status: PENDING
+                  duration_days: 180
+                  developer_email: d***r@example.com
+                  developer_name: John Doe
+                  total_project_value: '2500000.00'
+                  total_shares: 2500
+                  share_price: '1000.00'
+                  created_at: '2026-01-20T09:00:00Z'
+                summary: Admin Project List Example
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminProjectListRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminProjectListRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminProjectList'
+              examples:
+                AdminProjectListExample:
+                  value:
+                    id: d1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                    title: Wind Farm Beta
+                    category: Energy
+                    status: PENDING
+                    duration_days: 180
+                    developer_email: d***r@example.com
+                    developer_name: John Doe
+                    total_project_value: '2500000.00'
+                    total_shares: 2500
+                    share_price: '1000.00'
+                    created_at: '2026-01-20T09:00:00Z'
+                  summary: Admin Project List Example
+          description: ''
+  /api/v1/projects/admin/projects/{id}/archive/:
+    post:
+      operationId: projects_admin_projects_archive_create
+      description: Archive a project.
       parameters:
       - in: path
         name: id
@@ -1850,6 +2455,36 @@ paths:
                     created_at: '2026-01-20T09:00:00Z'
                   summary: Admin Project List Example
           description: ''
+  /api/v1/projects/admin/projects/statistics/:
+    get:
+      operationId: projects_admin_projects_statistics_retrieve
+      description: Platform statistics for admin.
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminProjectList'
+              examples:
+                AdminProjectListExample:
+                  value:
+                    id: d1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                    title: Wind Farm Beta
+                    category: Energy
+                    status: PENDING
+                    duration_days: 180
+                    developer_email: d***r@example.com
+                    developer_name: John Doe
+                    total_project_value: '2500000.00'
+                    total_shares: 2500
+                    share_price: '1000.00'
+                    created_at: '2026-01-20T09:00:00Z'
+                  summary: Admin Project List Example
+          description: ''
   /api/v1/projects/browse/:
     get:
       operationId: projects_browse_list
@@ -1942,20 +2577,60 @@ paths:
                           created_at: '2026-01-20T10:00:00Z'
                   summary: Project List Example
           description: ''
+  /api/v1/projects/categories/:
+    get:
+      operationId: projects_categories_retrieve
+      description: List all available categories with project counts.
+      tags:
+      - projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectList'
+              examples:
+                DeveloperProjectListExample:
+                  value:
+                    id: a1b2c3d4-e5f6-4a5b-b6c7-d8e9f0a1b2c3
+                    title: Solar Field Alpha
+                    category: Energy
+                    status: APPROVED
+                    duration_days: 365
+                    total_project_value: '750000.00'
+                    total_shares: 750
+                    share_price: '1000.00'
+                    shares_sold: 500
+                    remaining_shares: 250
+                    funding_percentage: 66.67
+                    created_at: '2026-01-20T08:00:00Z'
+                  summary: Developer Project List Example
+          description: ''
   /api/v1/projects/compare/:
     get:
       operationId: projects_compare_retrieve
       description: |-
-        Compare multiple approved projects side-by-side.
+        Compare 2-4 approved projects side-by-side.
 
-        For Investor and unauthenticated users: defaults to status=APPROVED only.
-        Admin users can see all statuses via explicit status query param.
+        Enforces access control: restricted fields only shown if investor has approved access.
+
+        Query Parameters:
+        - project_ids: Comma-separated list of 2-4 project UUIDs
+
+        Example: GET /api/v1/projects/compare/?project_ids=id1,id2,id3
+
+        Returns:
+        - projects: Array of projects with restricted field access control applied
+        - restricted_fields: List of all fields that have restrictions across projects
       parameters:
       - in: query
         name: project_ids
         schema:
           type: string
-        description: Comma-separated list of project IDs to compare (min 2, max 4)
+        description: 'Comma-separated list of project IDs to compare (min 2, max 4).
+          Example: 71b7d9e6-f29a-46e0-9899-f0dd317403a7,8d4594d3-7a6c-430d-bfbe-d521316deba2'
         required: true
       tags:
       - projects
@@ -1966,27 +2641,48 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InvestorProjectList'
+                $ref: '#/components/schemas/ProjectComparatorResponse'
               examples:
                 ProjectComparisonExample:
                   value:
                     success: true
-                    message: Success
+                    message: Projects comparison retrieved successfully
                     data:
-                    - id: 8d4594d3-7a6c-430d-bfbe-d521316deba2
-                      title: Green Energy Park
-                      category: Sustainability
-                      total_project_value: '1000000.00'
-                      share_price: '1000.00'
-                      funding_percentage: 45.0
-                      remaining_shares: 550
-                    - id: 71b7d9e6-f29a-46e0-9899-f0dd317403a7
-                      title: Urban Tech Hub
-                      category: Technology
-                      total_project_value: '2500000.00'
-                      share_price: '2500.00'
-                      funding_percentage: 80.0
-                      remaining_shares: 200
+                      projects:
+                      - id: 71b7d9e6-f29a-46e0-9899-f0dd317403a7
+                        title: Green Energy Park
+                        category: Sustainability
+                        duration_days: 365
+                        total_project_value: '1000000.00'
+                        total_shares: 1000
+                        share_price: '1000.00'
+                        shares_sold: 450
+                        remaining_shares: 550
+                        funding_percentage: 45.0
+                        developer_name: John Developer
+                        restricted_fields:
+                        - financial_report
+                        is_3d_restricted: true
+                        has_access: false
+                        created_at: '2026-01-20T10:00:00Z'
+                      - id: 8d4594d3-7a6c-430d-bfbe-d521316deba2
+                        title: Urban Tech Hub
+                        category: Technology
+                        duration_days: 540
+                        total_project_value: '2500000.00'
+                        total_shares: 2500
+                        share_price: '1000.00'
+                        shares_sold: 2000
+                        remaining_shares: 500
+                        funding_percentage: 80.0
+                        developer_name: Jane Developer
+                        restricted_fields: null
+                        is_3d_restricted: false
+                        has_access: true
+                        created_at: '2026-01-18T14:30:00Z'
+                      restricted_fields:
+                      - financial_report
+                      - architectural_plans
                   summary: Project Comparison Example
           description: ''
   /api/v1/projects/my/:
@@ -2112,6 +2808,36 @@ components:
       properties:
         reason:
           type: string
+    AdminAccessRequestList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project_id:
+          type: string
+          format: uuid
+        project_title:
+          type: string
+        requester_email:
+          type: string
+          format: email
+        status:
+          $ref: '#/components/schemas/AccessRequestStatus'
+        reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - project_id
+      - project_title
+      - requester_email
     AdminDashboard:
       type: object
       properties:
@@ -2226,6 +2952,64 @@ components:
       - category
       - duration_days
       - title
+    AdminUser:
+      type: object
+      description: Serializer for admin user management.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        full_name:
+          type: string
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleD51Enum'
+        is_active:
+          type: boolean
+        is_email_verified:
+          type: boolean
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - email
+      - first_name
+      - full_name
+      - id
+      - last_name
+    AdminUserUpdate:
+      type: object
+      description: Serializer for updating user status/role by admin.
+      properties:
+        is_active:
+          type: boolean
+        role:
+          $ref: '#/components/schemas/RoleD51Enum'
+        is_email_verified:
+          type: boolean
+    AdminUserUpdateRequest:
+      type: object
+      description: Serializer for updating user status/role by admin.
+      properties:
+        is_active:
+          type: boolean
+        role:
+          $ref: '#/components/schemas/RoleD51Enum'
+        is_email_verified:
+          type: boolean
     AuditLog:
       type: object
       properties:
@@ -2299,6 +3083,33 @@ components:
       - total_projects
       - total_shares_sold
       - unread_notifications
+    DeveloperProjectAccessRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        requester_name:
+          type: string
+          readOnly: true
+        requester_email:
+          type: string
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/AccessRequestStatus'
+        reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - requester_email
+      - requester_name
     EmailVerification:
       type: object
       description: |-
@@ -2698,17 +3509,59 @@ components:
       - id
       - message
       - type
+    NotificationPreference:
+      type: object
+      properties:
+        email_enabled:
+          type: boolean
+        in_app_enabled:
+          type: boolean
+        project_updates:
+          type: boolean
+        investment_updates:
+          type: boolean
+        access_updates:
+          type: boolean
+    NotificationPreferenceRequest:
+      type: object
+      properties:
+        email_enabled:
+          type: boolean
+        in_app_enabled:
+          type: boolean
+        project_updates:
+          type: boolean
+        investment_updates:
+          type: boolean
+        access_updates:
+          type: boolean
     NotificationType:
       enum:
-      - PROJECT
-      - INVESTMENT
-      - ACCESS
+      - PROJECT_SUBMITTED
+      - PROJECT_APPROVED
+      - PROJECT_REJECTED
+      - PROJECT_CHANGES_REQUESTED
+      - PAYMENT_SUCCESS
+      - PAYMENT_FAILED
+      - PAYMENT_PENDING
+      - ACCESS_APPROVED
+      - ACCESS_REJECTED
+      - ACCESS_REQUESTED
+      - ACCESS_REVOKED
       - SYSTEM
       type: string
       description: |-
-        * `PROJECT` - Project
-        * `INVESTMENT` - Investment
-        * `ACCESS` - Access Request
+        * `PROJECT_SUBMITTED` - Project Submitted
+        * `PROJECT_APPROVED` - Project Approved
+        * `PROJECT_REJECTED` - Project Rejected
+        * `PROJECT_CHANGES_REQUESTED` - Project Changes Requested
+        * `PAYMENT_SUCCESS` - Payment Success
+        * `PAYMENT_FAILED` - Payment Failed
+        * `PAYMENT_PENDING` - Payment Pending
+        * `ACCESS_APPROVED` - Access Approved
+        * `ACCESS_REJECTED` - Access Rejected
+        * `ACCESS_REQUESTED` - Access Requested
+        * `ACCESS_REVOKED` - Access Revoked
         * `SYSTEM` - System
     PaginatedAccessRequestListList:
       type: object
@@ -2733,6 +3586,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AccessRequestList'
+    PaginatedAdminAccessRequestListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminAccessRequestList'
+    PaginatedAdminProjectListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminProjectList'
     PaginatedAuditLogList:
       type: object
       required:
@@ -2756,6 +3655,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuditLog'
+    PaginatedDeveloperProjectAccessRequestList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeveloperProjectAccessRequest'
     PaginatedFavoriteListList:
       type: object
       required:
@@ -2923,6 +3845,29 @@ components:
           minLength: 1
       required:
       - email
+    PatchedAdminUserUpdateRequest:
+      type: object
+      description: Serializer for updating user status/role by admin.
+      properties:
+        is_active:
+          type: boolean
+        role:
+          $ref: '#/components/schemas/RoleD51Enum'
+        is_email_verified:
+          type: boolean
+    PatchedNotificationPreferenceRequest:
+      type: object
+      properties:
+        email_enabled:
+          type: boolean
+        in_app_enabled:
+          type: boolean
+        project_updates:
+          type: boolean
+        investment_updates:
+          type: boolean
+        access_updates:
+          type: boolean
     PatchedNotificationRequest:
       type: object
       properties:
@@ -2933,6 +3878,29 @@ components:
           minLength: 1
         is_read:
           type: boolean
+    PatchedProjectListRequest:
+      type: object
+      description: Serializer for listing developer's projects.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        category:
+          type: string
+          minLength: 1
+          maxLength: 100
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        total_shares:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
     PatchedProjectUpdateRequest:
       type: object
       description: |-
@@ -3110,6 +4078,108 @@ components:
       - projects_invested
       - total_invested
       - total_shares_owned
+    ProjectComparatorResponse:
+      type: object
+      description: |-
+        Response serializer for comparator feature.
+        Contains projects with access control applied.
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/ProjectComparison'
+          description: Comparison data with 'projects' key containing project list
+        restricted_fields:
+          type: array
+          items:
+            type: string
+          description: List of fields that require approved access to view
+      required:
+      - data
+      - message
+      - restricted_fields
+      - success
+    ProjectComparison:
+      type: object
+      description: |-
+        Serializer for comparator feature - displays projects side by side.
+        Respects restricted field access control.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        category:
+          type: string
+          maxLength: 100
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          description: Project duration in days
+        total_project_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_shares:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+        share_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        shares_sold:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        remaining_shares:
+          type: integer
+          readOnly: true
+          description: Remaining shares available
+        funding_percentage:
+          type: number
+          format: double
+          readOnly: true
+          description: Funding percentage (0-100)
+        developer_name:
+          type: string
+          readOnly: true
+        restricted_fields: {}
+        is_3d_restricted:
+          type: boolean
+        has_access:
+          type: boolean
+          readOnly: true
+          description: Whether user has access to restricted fields
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - created_at
+      - description
+      - developer_name
+      - duration_days
+      - funding_percentage
+      - has_access
+      - id
+      - remaining_shares
+      - title
+      - total_project_value
+      - total_shares
     ProjectCreate:
       type: object
       description: Serializer for creating new projects by developers.
@@ -3468,6 +4538,16 @@ components:
       - description
       - duration_days
       - title
+    RoleD51Enum:
+      enum:
+      - ADMIN
+      - DEVELOPER
+      - INVESTOR
+      type: string
+      description: |-
+        * `ADMIN` - Admin
+        * `DEVELOPER` - Developer
+        * `INVESTOR` - Investor
     SharePurchaseDetail:
       type: object
       description: |-
@@ -3680,7 +4760,7 @@ components:
           readOnly: true
         role:
           allOf:
-          - $ref: '#/components/schemas/UserProfileRoleEnum'
+          - $ref: '#/components/schemas/RoleD51Enum'
           readOnly: true
         auth_provider:
           allOf:
@@ -3703,16 +4783,6 @@ components:
       - is_email_verified
       - last_name
       - role
-    UserProfileRoleEnum:
-      enum:
-      - ADMIN
-      - DEVELOPER
-      - INVESTOR
-      type: string
-      description: |-
-        * `ADMIN` - Admin
-        * `DEVELOPER` - Developer
-        * `INVESTOR` - Investor
     UserRegistration:
       type: object
       description: |-

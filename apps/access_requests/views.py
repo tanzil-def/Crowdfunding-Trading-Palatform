@@ -1,4 +1,5 @@
-from rest_framework import generics, status, serializers
+from rest_framework import generics, status, serializers, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -9,7 +10,9 @@ from .serializers import (
     AccessRequestCreateSerializer,
     AccessRequestListSerializer,
     AdminAccessRequestActionSerializer,
-    AccessRequestActionResponseSerializer
+    AccessRequestActionResponseSerializer,
+    AdminAccessRequestListSerializer,
+    DeveloperProjectAccessRequestSerializer
 )
 from .permissions import IsInvestor, IsAdmin, IsOwnerOrAdmin
 from .services import approve_access_request, reject_access_request, revoke_access_request
@@ -89,3 +92,32 @@ class AdminAccessRequestRevokeView(generics.GenericAPIView):
             "success": True,
             "message": "Access revoked"
         })
+
+
+class AdminAccessRequestListView(generics.ListAPIView):
+    serializer_class = AdminAccessRequestListSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    queryset = AccessRequest.objects.all().order_by('-created_at')
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status']
+    search_fields = ['project__title', 'investor__email']
+
+
+class DeveloperProjectAccessRequestListView(generics.ListAPIView):
+    serializer_class = DeveloperProjectAccessRequestSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return AccessRequest.objects.none()
+        project_id = self.kwargs.get('project_id')
+        user = self.request.user
+        
+        # Admin can see all, Developers see their own
+        if user.role == 'ADMIN':
+            return AccessRequest.objects.filter(project_id=project_id)
+        
+        return AccessRequest.objects.filter(
+            project_id=project_id,
+            project__developer=user
+        )

@@ -4,7 +4,8 @@ from .views import (
     MyAccessRequestListView,
     AdminAccessRequestApproveView,
     AdminAccessRequestRejectView,
-    AdminAccessRequestRevokeView
+    AdminAccessRequestRevokeView,
+    AdminAccessRequestListView
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path('admin/<uuid:id>/approve/', AdminAccessRequestApproveView.as_view(), name='access-request-approve'),
     path('admin/<uuid:id>/reject/', AdminAccessRequestRejectView.as_view(), name='access-request-reject'),
     path('admin/<uuid:id>/revoke/', AdminAccessRequestRevokeView.as_view(), name='access-request-revoke'),
+    path('admin/', AdminAccessRequestListView.as_view(), name='access-request-admin-list'),
 ]

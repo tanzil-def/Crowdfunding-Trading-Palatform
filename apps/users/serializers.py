@@ -223,3 +223,34 @@ class TokenResponseSerializer(serializers.Serializer):
     """
     access = serializers.CharField(read_only=True)
     refresh = serializers.CharField(read_only=True)
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """
+    Serializer for admin user management.
+    """
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'email',
+            'first_name',
+            'last_name',
+            'full_name',
+            'role',
+            'is_active',
+            'is_email_verified',
+            'date_joined'
+        ]
+        read_only_fields = ['id', 'email', 'date_joined']
+
+
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating user status/role by admin.
+    """
+    class Meta:
+        model = User
+        fields = ['is_active', 'role', 'is_email_verified']
