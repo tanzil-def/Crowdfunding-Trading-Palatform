@@ -31,3 +31,16 @@ apps/access_requests/tests.py
 apps/notifications/migrations/0005_notificationpreference.py
 apps/users/admin_urls.py
 SRS.md
+CALLBACK_*.md
+FINAL_*.md
+IMPLEMENTATION_*.md
+INVESTMENTS_*.md
+PRODUCTION_*.md
+QUICK_*.md
+SWAGGER_*.md
+TEST_*.md
+DOCUMENTATION_*.md
+*_REFERENCE.md
+test_requirements.py
+PRODUCTION_READY_VERIFICATION.txt
+
