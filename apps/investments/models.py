@@ -6,215 +6,166 @@ from apps.users.models import User
 from apps.projects.models import Project
 
 
+class InvestmentRequest(models.Model):
+    """
+    Main entity tracking the investment lifecycle from initiation to share allocation.
+    
+    Status transitions:
+    PENDING_PAYMENT -> (PAYMENT_FAILED, PAYMENT_CONFIRMED, CANCELLED)
+    PAYMENT_CONFIRMED -> (ADMIN_APPROVED, ADMIN_REJECTED)
+    ADMIN_APPROVED -> SHARES_ALLOCATED
+    """
+    STATUS_PENDING_PAYMENT = 'PENDING_PAYMENT'
+    STATUS_PAYMENT_FAILED = 'PAYMENT_FAILED'
+    STATUS_PAYMENT_CONFIRMED = 'PAYMENT_CONFIRMED'
+    STATUS_ADMIN_APPROVED = 'ADMIN_APPROVED'
+    STATUS_ADMIN_REJECTED = 'ADMIN_REJECTED'
+    STATUS_SHARES_ALLOCATED = 'SHARES_ALLOCATED'
+    STATUS_CANCELLED = 'CANCELLED'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING_PAYMENT, 'Pending Payment'),
+        (STATUS_PAYMENT_FAILED, 'Payment Failed'),
+        (STATUS_PAYMENT_CONFIRMED, 'Payment Confirmed'),
+        (STATUS_ADMIN_APPROVED, 'Admin Approved'),
+        (STATUS_ADMIN_REJECTED, 'Admin Rejected'),
+        (STATUS_SHARES_ALLOCATED, 'Shares Allocated'),
+        (STATUS_CANCELLED, 'Cancelled'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    investor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='investment_requests')
+    project = models.ForeignKey(Project, on_delete=models.PROTECT, related_name='investment_requests')
+    
+    requested_shares = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    price_per_share = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    amount = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default=STATUS_PENDING_PAYMENT, db_index=True)
+    
+    payment_reference = models.CharField(max_length=255, unique=True, db_index=True)
+    payment_url = models.URLField(max_length=1000, null=True, blank=True)
+    
+    admin_remarks = models.TextField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'investments_investment_request'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['investor', 'status']),
+            models.Index(fields=['project', 'status']),
+        ]
+
+    def __str__(self):
+        return f"REQ {self.payment_reference} - {self.investor.email} - {self.status}"
+
+
 class PaymentTransaction(models.Model):
     """
-    Payment transaction records for audit trail and idempotency.
-    Tracks all payment attempts including success and failures.
-    
-    Status flow: INITIATED → (SUCCESS or FAILED)
-    One payment transaction can have at most one share purchase (success case only).
+    Detailed gateway-level transaction logs. 
+    Distinct from InvestmentRequest to track multiple attempts if needed.
     """
     STATUS_INITIATED = 'INITIATED'
     STATUS_SUCCESS = 'SUCCESS'
     STATUS_FAILED = 'FAILED'
+    STATUS_REFUNDED = 'REFUNDED'
 
     STATUS_CHOICES = [
-        (STATUS_INITIATED, 'Payment Initiated'),
-        (STATUS_SUCCESS, 'Payment Successful'),
-        (STATUS_FAILED, 'Payment Failed'),
+        (STATUS_INITIATED, 'Initiated'),
+        (STATUS_SUCCESS, 'Success'),
+        (STATUS_FAILED, 'Failed'),
+        (STATUS_REFUNDED, 'Refunded'),
     ]
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-        help_text="Unique transaction identifier"
-    )
-    reference_id = models.CharField(
-        max_length=255,
-        unique=True,
-        db_index=True,
-        help_text="Unique reference from payment gateway"
-    )
-    idempotency_key = models.CharField(
-        max_length=255,
-        unique=True,
-        db_index=True,
-        null=True,
-        blank=True,
-        help_text="Client-provided key to prevent duplicate requests"
-    )
-    investor = models.ForeignKey(
-        User,
-        on_delete=models.PROTECT,
-        related_name='payment_transactions',
-        help_text="Investor who initiated this payment"
-    )
-    project = models.ForeignKey(
-        Project,
-        on_delete=models.PROTECT,
-        related_name='payment_transactions',
-        help_text="Project being invested in"
-    )
-    amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
-        help_text="Amount in USD"
-    )
-    shares_requested = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
-        help_text="Number of shares requested"
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    investment_request = models.ForeignKey(InvestmentRequest, on_delete=models.CASCADE, related_name='transactions', null=True, blank=True)
     
-    # Status tracking
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default=STATUS_INITIATED,
-        db_index=True,
-        help_text="Current payment status"
-    )
-    failure_reason = models.TextField(
-        null=True,
-        blank=True,
-        help_text="Error message if payment failed"
-    )
+    gateway_transaction_id = models.CharField(max_length=255, null=True, blank=True)
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    currency = models.CharField(max_length=10, default='USD')
     
-    # Gateway audit trail
-    gateway_payload = models.JSONField(
-        blank=True,
-        null=True,
-        help_text="Complete response from payment gateway (for audit)"
-    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_INITIATED, db_index=True)
+    raw_gateway_response = models.JSONField(null=True, blank=True)
     
-    # Timestamps
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        db_index=True,
-        help_text="When payment was initiated"
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        help_text="When payment was last updated"
-    )
-    processed_at = models.DateTimeField(
-        blank=True,
-        null=True,
-        help_text="When payment was processed by gateway"
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'investments_payment_transaction'
-        ordering = ['-created_at']
-        verbose_name = 'Payment Transaction'
-        verbose_name_plural = 'Payment Transactions'
-        indexes = [
-            models.Index(fields=['investor', 'status']),
-            models.Index(fields=['reference_id']),
-            models.Index(fields=['project', '-created_at']),
-            models.Index(fields=['idempotency_key']),
-        ]
+
+
+class PortfolioHolding(models.Model):
+    """
+    aggregated view of an investor's holdings in a project.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    investor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='portfolio_holdings')
+    project = models.ForeignKey(Project, on_delete=models.PROTECT, related_name='portfolio_holdings')
+    
+    shares_owned = models.PositiveIntegerField(default=0)
+    avg_buy_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'investments_portfolio_holding'
+        unique_together = ('investor', 'project')
 
     def __str__(self):
-        return f"{self.reference_id} - {self.investor.email} - {self.status}"
+        return f"{self.investor.email} holding in {self.project.title}"
 
-    def is_completed(self):
-        """Check if payment is final (success or failed)"""
-        return self.status in [self.STATUS_SUCCESS, self.STATUS_FAILED]
 
-    @property
-    def price_per_share(self):
-        """Calculate effective price per share"""
-        if self.shares_requested > 0:
-            return self.amount / Decimal(str(self.shares_requested))
-        return Decimal('0.00')
+class ShareLedger(models.Model):
+    """
+    Immutable ledger of all share movements.
+    This is the source of truth for all accounting.
+    """
+    REASON_PURCHASE = 'PURCHASE'
+    REASON_REFUND = 'REFUND'
+    REASON_ADJUSTMENT = 'ADJUSTMENT'
+
+    REASON_CHOICES = [
+        (REASON_PURCHASE, 'Purchase'),
+        (REASON_REFUND, 'Refund'),
+        (REASON_ADJUSTMENT, 'Adjustment'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    investment_request = models.ForeignKey(InvestmentRequest, on_delete=models.PROTECT, related_name='ledger_entries', null=True, blank=True)
+    
+    investor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='ledger_entries')
+    project = models.ForeignKey(Project, on_delete=models.PROTECT, related_name='ledger_entries')
+    
+    shares_delta = models.IntegerField(help_text="Positive for purchase, negative for withdrawal/refund")
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES)
+    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'investments_share_ledger'
 
 
 class SharePurchase(models.Model):
     """
-    Records successful share purchases.
-    Created ONLY after payment succeeds.
-    
-    One payment transaction has at most one share purchase.
-    Multiple share purchases from same investor across different projects.
+    Kept for backward compatibility and receipt generation.
+    In the new flow, this is created upon ADMIN_APPROVED -> SHARES_ALLOCATED.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    investor = models.ForeignKey(User, on_delete=models.PROTECT, related_name='share_purchases')
+    project = models.ForeignKey(Project, on_delete=models.PROTECT, related_name='share_purchases')
     
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False
-    )
+    investment_request = models.OneToOneField(InvestmentRequest, on_delete=models.PROTECT, related_name='share_purchase', null=True, blank=True)
+    # payment_transaction = models.OneToOneField(PaymentTransaction, on_delete=models.PROTECT, related_name='share_purchase', null=True) # Replaced by investment_request
     
-    # Foreign keys
-    investor = models.ForeignKey(
-        User,
-        on_delete=models.PROTECT,
-        related_name='share_purchases',
-        help_text="Investor who owns these shares"
-    )
-    project = models.ForeignKey(
-        Project,
-        on_delete=models.PROTECT,
-        related_name='share_purchases',
-        help_text="Project these shares belong to"
-    )
-    payment_transaction = models.OneToOneField(
-        PaymentTransaction,
-        on_delete=models.PROTECT,
-        related_name='share_purchase',
-        help_text="Associated successful payment"
-    )
+    shares_purchased = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    price_per_share = models.DecimalField(max_digits=12, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2)
     
-    # Share details (immutable after creation)
-    shares_purchased = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
-        help_text="Number of shares purchased"
-    )
-    price_per_share = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
-        help_text="Price per share at time of purchase (immutable)"
-    )
-    total_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
-        help_text="Total amount = shares × price"
-    )
-    
-    # Timestamp
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        db_index=True
-    )
-    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
     class Meta:
         db_table = 'investments_share_purchase'
-        ordering = ['-created_at']
-        verbose_name = 'Share Purchase'
-        verbose_name_plural = 'Share Purchases'
-        indexes = [
-            models.Index(fields=['investor', '-created_at']),
-            models.Index(fields=['project', '-created_at']),
-        ]
-
-    def __str__(self):
-        return f"{self.investor.email} - {self.shares_purchased} shares of {self.project.title}"
-
-    def validate_consistency(self):
-        """Ensure amount = shares × price (data integrity)"""
-        from django.core.exceptions import ValidationError
-        expected_total = Decimal(str(self.shares_purchased)) * self.price_per_share
-        if expected_total != self.total_amount:
-            raise ValidationError("Share purchase amount mismatch")
-
-    def save(self, *args, **kwargs):
-        """
-        Ensure total_amount matches calculation.
-        This provides data integrity at model level.
-        """
-        if not self.total_amount:
-            self.total_amount = Decimal(str(self.shares_purchased)) * self.price_per_share
-        super().save(*args, **kwargs)

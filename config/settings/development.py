@@ -7,8 +7,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0').split(',')
 
-# Only allow all origins in development
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+# CORS settings are inherited from base.py to allow credentials
 
 if DEBUG:
     INTERNAL_IPS = ['127.0.0.1']

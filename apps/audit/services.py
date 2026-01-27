@@ -2,7 +2,7 @@
 
 from apps.audit.models import AuditLog
 
-def log_admin_action(actor, action, entity_type, entity_id, metadata=None):
+def log_admin_action(actor, action, entity_type, entity_id, metadata=None, before_state=None, after_state=None, ip_address=None):
     """
     Record an immutable audit log.
     
@@ -14,11 +14,17 @@ def log_admin_action(actor, action, entity_type, entity_id, metadata=None):
         entity_type: str, e.g., "Project", "SharePurchase"
         entity_id: UUID of the entity
         metadata: optional dict, e.g., {"reason": "Incomplete docs"}
+        before_state: dict, state of entity before action
+        after_state: dict, state of entity after action
+        ip_address: str, requester IP address
     """
-    AuditLog.objects.create(
+    return AuditLog.objects.create(
         actor=actor,  # None is allowed for webhook actions
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
-        metadata=metadata or {}
+        metadata=metadata or {},
+        before_state=before_state,
+        after_state=after_state,
+        ip_address=ip_address
     )

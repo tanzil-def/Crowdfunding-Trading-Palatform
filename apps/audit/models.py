@@ -22,6 +22,9 @@ class AuditLog(models.Model):
     entity_type = models.CharField(max_length=100)
     entity_id = models.UUIDField()
     metadata = models.JSONField(default=dict, blank=True)
+    before_state = models.JSONField(null=True, blank=True, help_text="State of entity before action")
+    after_state = models.JSONField(null=True, blank=True, help_text="State of entity after action")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
