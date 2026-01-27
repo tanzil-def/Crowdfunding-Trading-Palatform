@@ -328,7 +328,7 @@ class InvestmentDetailView(generics.RetrieveAPIView):
         
         return SharePurchase.objects.filter(
             investor=self.request.user
-        ).select_related('project', 'payment')
+        ).select_related('project', 'payment_transaction')
 
 
 class InvestorPortfolioSummaryView(generics.GenericAPIView):
