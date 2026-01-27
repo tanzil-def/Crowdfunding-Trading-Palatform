@@ -124,7 +124,7 @@ def admin_approve_project(project, admin_user):
     project.save(update_fields=['status'])
     
     log_admin_action(
-        admin_user=admin_user,
+        actor=admin_user,
         action="Approved Project",
         entity_type="Project",
         entity_id=project.id,
@@ -152,7 +152,7 @@ def admin_reject_project(project, admin_user, reason=None):
     project.save(update_fields=['status'])
     
     log_admin_action(
-        admin_user=admin_user,
+        actor=admin_user,
         action="Rejected Project",
         entity_type="Project",
         entity_id=project.id,
@@ -181,7 +181,7 @@ def admin_request_changes(project, admin_user, note=None):
     project.save(update_fields=['status'])
     
     log_admin_action(
-        admin_user=admin_user,
+        actor=admin_user,
         action="Requested Changes on Project",
         entity_type="Project",
         entity_id=project.id,
@@ -206,7 +206,7 @@ def admin_archive_project(project, admin_user):
     project.save(update_fields=['status'])
     
     log_admin_action(
-        admin_user=admin_user,
+        actor=admin_user,
         action="Archived Project",
         entity_type="Project",
         entity_id=project.id,

@@ -408,7 +408,7 @@ class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.is_active = False
         instance.save()
         log_admin_action(
-            admin_user=self.request.user,
+            actor=self.request.user,
             action="USER_DEACTIVATED",
             entity_type="USER",
             entity_id=instance.id,
@@ -434,7 +434,7 @@ class AdminUserVerifyEmailView(generics.GenericAPIView):
             user.is_email_verified = True
             user.save()
             log_admin_action(
-                admin_user=request.user,
+                actor=request.user,
                 action="USER_EMAIL_VERIFIED_MANUALLY",
                 entity_type="USER",
                 entity_id=user.id
@@ -459,7 +459,7 @@ class AdminUserDeactivateView(generics.GenericAPIView):
             user.is_active = False
             user.save()
             log_admin_action(
-                admin_user=request.user,
+                actor=request.user,
                 action="USER_DEACTIVATED_MANUALLY",
                 entity_type="USER",
                 entity_id=user.id

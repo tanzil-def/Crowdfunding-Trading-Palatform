@@ -14,7 +14,7 @@ def approve_access_request(access_request, admin_user):
     notify_investor_access_approved(access_request)
 
     log_admin_action(
-        admin_user=admin_user,
+        actor=admin_user,
         action="Approved Access Request",
         entity_type="AccessRequest",
         entity_id=access_request.id,
@@ -37,7 +37,7 @@ def reject_access_request(access_request, admin_user, reason=None):
     notify_investor_access_rejected(access_request, reason)
 
     log_admin_action(
-        admin_user=admin_user,
+        actor=admin_user,
         action="Rejected Access Request",
         entity_type="AccessRequest",
         entity_id=access_request.id,
@@ -61,7 +61,7 @@ def revoke_access_request(access_request, admin_user, reason=None):
     notify_investor_access_revoked(access_request, admin_user)
 
     log_admin_action(
-        admin_user=admin_user,
+        actor=admin_user,
         action="Revoked Access",
         entity_type="AccessRequest",
         entity_id=access_request.id,

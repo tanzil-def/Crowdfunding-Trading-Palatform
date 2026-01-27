@@ -350,7 +350,7 @@ def process_failed_payment(payment, gateway_payload, failure_reason=None):
     
     # Create audit log
     log_admin_action(
-        admin_user=None,
+        actor=None,
         action='PAYMENT_FAILED',
         entity_type='PaymentTransaction',
         entity_id=str(payment.id),

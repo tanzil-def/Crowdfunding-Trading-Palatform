@@ -1,840 +1,158 @@
-# Crowdfunding Trading Platform
+# Crowdfunding Trading Platform - Backend API
 
-> A modern, share-based crowdfunding platform with role-based access control, built with Django REST Framework and React.
-
-[![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-4.2.11-green.svg)](https://www.djangoproject.com/)
-[![DRF](https://img.shields.io/badge/DRF-3.x-red.svg)](https://www.django-rest-framework.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![DRF](https://img.shields.io/badge/DRF-3.14+-blue.svg)](https://www.django-rest-framework.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue.svg)](https://www.postgresql.org/)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 
----
+A comprehensive share-based crowdfunding platform backend with role-based access control, project management workflows, investment tracking, and real-time notifications.
 
 ## 📋 Table of Contents
 
-- [Project Overview](#-project-overview)
-- [System Architecture](#-system-architecture)
-- [Database Schema & Models](#-database-schema--models)
-- [Role-Based Access Control (RBAC)](#-role-based-access-control-rbac)
-- [API Documentation](#-api-documentation)
-- [Tech Stack](#-tech-stack)
-- [Installation & Setup](#-installation--setup)
-- [Project Structure](#-project-structure)
+- [About Project](#-about-project)
 - [Features](#-features)
-- [Security & Best Practices](#-security--best-practices)
+- [Architecture](#%EF%B8%8F-architecture)
+- [Project Structure](#-project-structure)
+- [Quick Start](#-quick-start)
+- [Configuration](#%EF%B8%8F-configuration)
+- [Database](#%EF%B8%8F-database)
+- [Authentication](#-authentication--authorization)
+- [Django Apps](#-django-apps-structure)
+- [API Endpoints](#-api-endpoints)
+- [API Documentation](#-api-documentation)
+- [Testing](#-testing)
+- [Development](#%EF%B8%8F-development)
+- [Code Quality](#-code-quality)
+- [Troubleshooting](#-troubleshooting)
+- [Deployment](#-deployment)
 - [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 
-## 🎯 Project Overview
+## 📖 About Project
 
-The **Crowdfunding Trading Platform** is an enterprise-grade web application that enables developers to raise funds for their projects by selling shares to investors. The platform implements a secure, transparent, and efficient crowdfunding ecosystem with comprehensive audit trails and real-time notifications.
+The Crowdfunding Trading Platform backend is a Django REST Framework-based API that enables developers to raise funds for their projects through share-based crowdfunding. The platform features:
 
-### Key Highlights
-
-- **Share-Based Funding Model**: Projects are divided into tradable shares with dynamic pricing
-- **Multi-Role System**: Distinct workflows for Admins, Developers, and Investors
-- **Atomic Transactions**: Guaranteed consistency in share allocation and payment processing
-- **Real-Time Notifications**: Instant updates on project status, investments, and access requests
-- **Comprehensive Audit Logging**: Complete traceability of all administrative actions
-- **Restricted Content Access**: Granular control over sensitive project information and media
-- **Email Verification**: Mandatory verification before critical operations
-- **OAuth Integration**: Google OAuth support for seamless authentication
+- **Role-Based Access Control**: Admin, Developer, and Investor roles with granular permissions
+- **Project Management**: Complete CRUD operations with admin approval workflow
+- **Share-Based Investment System**: Atomic share allocation with wallet management
+- **Access Control**: Restricted content with investor request/approval system
+- **Real-Time Notifications**: WebSocket-based notifications for all user actions
+- **Audit Logging**: Complete audit trail for governance and compliance
+- **REST API**: Fully documented OpenAPI/Swagger endpoints
 
 ---
 
-## 🏗️ System Architecture
+## ✨ Features
 
-### Backend Architecture (Django/DRF)
+### Authentication & Authorization
 
-The backend follows a **modular monolithic architecture** with clear separation of concerns:
+| Feature | Description |
+|---------|-------------|
+| JWT Authentication | SimpleJWT with access/refresh tokens |
+| Google OAuth | Social authentication support |
+| Email Verification | Required for investment actions |
+| Password Reset | Secure token-based password recovery |
+| Role-Based Access | Admin, Developer, Investor permissions |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     API Gateway (DRF)                        │
-│                  JWT Authentication Layer                    │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-        ┌───────────────┼───────────────┐
-        │               │               │
-┌───────▼──────┐ ┌─────▼──────┐ ┌─────▼──────┐
-│   Users      │ │  Projects  │ │Investments │
-│   Module     │ │   Module   │ │   Module   │
-└──────────────┘ └────────────┘ └────────────┘
-        │               │               │
-┌───────▼──────┐ ┌─────▼──────┐ ┌─────▼──────┐
-│Notifications │ │   Audit    │ │ Dashboard  │
-│   Module     │ │   Module   │ │   Module   │
-└──────────────┘ └────────────┘ └────────────┘
-        │               │               │
-┌───────▼──────┐ ┌─────▼──────┐
-│  Favorites   │ │   Access   │
-│   Module     │ │  Requests  │
-└──────────────┘ └────────────┘
-                        │
-        ┌───────────────┴───────────────┐
-        │                               │
-┌───────▼──────┐              ┌─────────▼────────┐
-│  PostgreSQL  │              │   Media Storage  │
-│   Database   │              │   (File System)  │
-└──────────────┘              └──────────────────┘
-```
+### Project Management
 
-### Modular App Structure
+| Feature | Description |
+|---------|-------------|
+| CRUD Operations | Create, read, update, delete projects |
+| Approval Workflow | Pending → Approved/Rejected/Needs Changes |
+| Media Upload | Images, videos, 3D models support |
+| Restricted Fields | Developer-defined access-controlled content |
+| Project Categories | Organized by industry/type |
 
-Each Django app is self-contained with its own:
-- **Models**: Database schema definitions
-- **Serializers**: Data validation and transformation
-- **Views**: Business logic and request handling
-- **URLs**: Endpoint routing
-- **Permissions**: Access control logic
-- **Services**: Complex business operations (where applicable)
+### Investment System
 
-### Frontend Communication
+| Feature | Description |
+|---------|-------------|
+| Share Purchase | Atomic share allocation with locking |
+| Payment Integration | Payment gateway callback handling |
+| Wallet Management | Track balances and transactions |
+| Portfolio Summary | Investor dashboard analytics |
+| Transaction History | Complete audit trail |
 
-The React/Vite frontend communicates with the backend via:
-- **RESTful API**: JSON-based request/response
-- **JWT Tokens**: Stateless authentication (Access + Refresh tokens)
-- **CORS Configuration**: Secure cross-origin requests
-- **API Versioning**: `/api/v1/` prefix for future compatibility
+### Access Control
 
----
+| Feature | Description |
+|---------|-------------|
+| Access Requests | Investors request access to restricted content |
+| Admin Approval | Approve/reject/revoke access |
+| Dynamic Filtering | Automatic content restriction based on access |
 
-## 🗄️ Database Schema & Models
+### Governance & Monitoring
 
-### Entity Relationship Overview
+| Feature | Description |
+|---------|-------------|
+| Audit Logging | All admin actions logged with metadata |
+| Real-Time Notifications | WebSocket notifications for events |
+| User Verification | Admin-controlled email verification |
+| Activity Tracking | Complete user action history |
 
-```mermaid
-erDiagram
-    User ||--o{ Project : creates
-    User ||--o{ SharePurchase : makes
-    User ||--o{ Notification : receives
-    User ||--o{ AuditLog : performs
-    User ||--o{ Favorite : has
-    User ||--o{ AccessRequest : submits
-    
-    Project ||--o{ ProjectMedia : contains
-    Project ||--o{ SharePurchase : has
-    Project ||--o{ PaymentTransaction : receives
-    Project ||--o{ Favorite : favorited_by
-    Project ||--o{ AccessRequest : for
-    
-    PaymentTransaction ||--|| SharePurchase : confirms
-    
-    User {
-        UUID id PK
-        string email UK
-        string first_name
-        string last_name
-        enum role
-        enum auth_provider
-        string google_id UK
-        boolean is_email_verified
-        boolean is_active
-        datetime date_joined
-    }
-    
-    Project {
-        UUID id PK
-        UUID developer_id FK
-        string title
-        text description
-        string category
-        int duration_days
-        decimal total_project_value
-        int total_shares
-        decimal share_price
-        int shares_sold
-        enum status
-        json restricted_fields
-        boolean is_3d_restricted
-        datetime created_at
-    }
-    
-    SharePurchase {
-        UUID id PK
-        UUID investor_id FK
-        UUID project_id FK
-        UUID payment_id FK
-        int shares_purchased
-        decimal price_per_share
-        decimal total_amount
-        datetime created_at
-    }
-    
-    PaymentTransaction {
-        UUID id PK
-        string reference_id UK
-        UUID investor_id FK
-        UUID project_id FK
-        decimal amount
-        enum status
-        json gateway_payload
-        text failure_reason
-        datetime created_at
-        datetime processed_at
-    }
-```
+### API Features
 
-### Core Models
-
-#### 1. **User Model** (`apps.users.models.User`)
-
-Custom user model extending Django's `AbstractBaseUser` with role-based authentication.
-
-**Key Fields:**
-- `id` (UUID): Primary key
-- `email` (EmailField): Unique identifier for authentication
-- `role` (CharField): One of `ADMIN`, `DEVELOPER`, `INVESTOR`
-- `auth_provider` (CharField): `LOCAL` or `GOOGLE`
-- `google_id` (CharField): For OAuth integration
-- `is_email_verified` (BooleanField): Email verification status
-
-**Related Models:**
-- `EmailVerificationToken`: Time-limited tokens for email verification
-- `PasswordResetToken`: Secure password reset mechanism
-
-**Indexes:**
-- `email` (unique, indexed)
-- `role + is_active` (composite index)
-- `google_id` (unique, indexed)
+| Feature | Description |
+|---------|-------------|
+| OpenAPI Schema | Auto-generated API documentation |
+| Swagger UI | Interactive API testing interface |
+| Pagination | Configurable page sizes |
+| Filtering | Query parameter-based filtering |
+| Ordering | Sort by multiple fields |
+| Search | Full-text search on relevant fields |
 
 ---
 
-#### 2. **Project Model** (`apps.projects.models.Project`)
+## 🏗️ Architecture
 
-Represents crowdfunding projects created by developers.
+### Technology Stack
 
-**Key Fields:**
-- `id` (UUID): Primary key
-- `developer` (ForeignKey → User): Project owner
-- `title`, `description`, `category`: Project details
-- `total_project_value` (Decimal): Total funding goal
-- `total_shares` (PositiveInteger): Total shares available
-- `share_price` (Decimal): Price per share
-- `shares_sold` (PositiveInteger): Shares already sold
-- `status` (CharField): `DRAFT`, `PENDING`, `APPROVED`, `REJECTED`, `NEEDS_CHANGES`, `ARCHIVED`
-- `restricted_fields` (JSONField): Dynamic field-level access control
-- `is_3d_restricted` (BooleanField): 3D model access restriction
+| Category | Technology | Purpose |
+|----------|-----------|---------|
+| **Framework** | Django 4.2.11 | Web framework |
+| **API** | Django REST Framework | REST API development |
+| **Database** | PostgreSQL 14+ | Relational database |
+| **Authentication** | SimpleJWT | JWT token management |
+| **WebSockets** | Django Channels + Daphne | Real-time notifications |
+| **API Docs** | drf-spectacular | OpenAPI schema generation |
+| **CORS** | django-cors-headers | Cross-origin requests |
+| **Filtering** | django-filter | Query filtering |
+| **Testing** | pytest | Unit and integration tests |
 
-**Computed Properties:**
-- `remaining_shares`: `total_shares - shares_sold`
-- `funding_percentage`: `(shares_sold / total_shares) * 100`
+### System Design
 
-**Related Models:**
-- `ProjectMedia`: Images and 3D models associated with projects
-
-**Indexes:**
-- `status + created_at` (composite, descending)
-- `developer + status`
-- `category + status`
-
----
-
-#### 3. **Investment Models** (`apps.investments.models`)
-
-##### **PaymentTransaction**
-Tracks all payment attempts for audit trail and idempotency.
-
-**Key Fields:**
-- `reference_id` (CharField): Unique identifier for idempotent operations
-- `investor`, `project` (ForeignKeys)
-- `amount` (Decimal): Payment amount
-- `status` (CharField): `INITIATED`, `SUCCESS`, `FAILED`
-- `gateway_payload` (JSONField): Raw payment gateway response
-- `failure_reason` (TextField): Error details if failed
-
-##### **SharePurchase**
-Created only after successful payment confirmation.
-
-**Key Fields:**
-- `investor`, `project` (ForeignKeys)
-- `payment` (OneToOneField → PaymentTransaction): Links to payment
-- `shares_purchased` (PositiveInteger): Number of shares bought
-- `price_per_share` (Decimal): Price at time of purchase
-- `total_amount` (Decimal): Total investment amount
-
-**Constraints:**
-- Atomic share allocation using database transactions
-- Prevents overselling through `F()` expressions and row-level locking
-
----
-
-#### 4. **Notification Model** (`apps.notifications.models.Notification`)
-
-Real-time notification system for user updates.
-
-**Key Fields:**
-- `user` (ForeignKey → User): Recipient
-- `type` (CharField): `PROJECT`, `INVESTMENT`, `ACCESS`, `SYSTEM`
-- `title`, `message` (CharField/TextField): Notification content
-- `metadata` (JSONField): Additional context data
-- `is_read` (BooleanField): Read status
-
-**Triggers:**
-- Project approval/rejection
-- Investment confirmations
-- Access request decisions
-- System announcements
-
----
-
-#### 5. **AuditLog Model** (`apps.audit.models.AuditLog`)
-
-Immutable audit trail for administrative actions.
-
-**Key Fields:**
-- `actor` (ForeignKey → User): Admin who performed action
-- `action` (CharField): Description of action
-- `entity_type` (CharField): Type of entity affected
-- `entity_id` (UUID): ID of affected entity
-- `metadata` (JSONField): Additional context
-
-**Characteristics:**
-- Never updated or deleted
-- Admin-only access
-- Complete traceability
-
----
-
-#### 6. **Supporting Models**
-
-- **Favorite** (`apps.favorites.models.Favorite`): Investor project bookmarks
-- **AccessRequest** (`apps.access_requests.models.AccessRequest`): Requests for restricted content access
-- **ProjectMedia** (`apps.projects.models.ProjectMedia`): Project images and 3D models
-
----
-
-## 🔐 Role-Based Access Control (RBAC)
-
-The platform implements a strict three-role hierarchy with distinct permissions:
-
-### Role Definitions
-
-| Role | Description | Primary Use Cases |
-|------|-------------|-------------------|
-| **Admin** | Platform administrators with full system access | Project approval, user management, audit logs, system configuration |
-| **Developer** | Project creators seeking funding | Create/edit projects, upload media, view project analytics, respond to feedback |
-| **Investor** | Users who fund projects by purchasing shares | Browse projects, invest in shares, manage portfolio, request restricted access |
-
-### Permission Matrix
-
-| Feature | Admin | Developer | Investor |
-|---------|-------|-----------|----------|
-| **User Management** |
-| View all users | ✅ | ❌ | ❌ |
-| Manage user roles | ✅ | ❌ | ❌ |
-| **Project Management** |
-| Create projects | ❌ | ✅ | ❌ |
-| Edit own projects | ❌ | ✅ | ❌ |
-| Submit for review | ❌ | ✅ | ❌ |
-| Approve/Reject projects | ✅ | ❌ | ❌ |
-| Request changes | ✅ | ❌ | ❌ |
-| Browse approved projects | ✅ | ✅ | ✅ |
-| View restricted fields | ✅ | ✅ (own) | ✅ (if invested) |
-| **Investments** |
-| Purchase shares | ❌ | ❌ | ✅ |
-| View all transactions | ✅ | ❌ | ❌ |
-| View own investments | ❌ | ❌ | ✅ |
-| View project investors | ✅ | ✅ (own) | ❌ |
-| **Access Requests** |
-| Submit access requests | ❌ | ❌ | ✅ |
-| Approve/Reject requests | ❌ | ✅ (own projects) | ❌ |
-| **Audit & Monitoring** |
-| View audit logs | ✅ | ❌ | ❌ |
-| View platform analytics | ✅ | ❌ | ❌ |
-| **Notifications** |
-| Receive notifications | ✅ | ✅ | ✅ |
-| **Dashboard** |
-| Admin dashboard | ✅ | ❌ | ❌ |
-| Developer dashboard | ❌ | ✅ | ❌ |
-| Investor dashboard | ❌ | ❌ | ✅ |
-
-### Permission Implementation
-
-Permissions are enforced at multiple levels:
-
-1. **View-Level Permissions** (DRF Permission Classes)
-   ```python
-   # Example: apps/audit/permissions.py
-   class IsAdmin(BasePermission):
-       def has_permission(self, request, view):
-           return request.user.is_authenticated and request.user.role == 'ADMIN'
-   ```
-
-2. **Object-Level Permissions**
-   ```python
-   # Example: Developer can only edit their own projects
-   def has_object_permission(self, request, view, obj):
-       return obj.developer == request.user
-   ```
-
-3. **Field-Level Restrictions**
-   - Dynamic field filtering based on user role and investment status
-   - Restricted fields stored in `Project.restricted_fields` JSON field
-
-4. **Email Verification Enforcement**
-   - Investors must verify email before purchasing shares
-   - Developers must verify email before submitting projects
-
----
-
-## 📡 API Documentation
-
-### Base URL
 ```
-http://localhost:8000/api/v1/
+┌─────────────────────────────────────────────────────────┐
+│                     Client Layer                         │
+│  (React Frontend, Mobile Apps, Third-party Integrations) │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+                       │ HTTP/HTTPS + WebSocket
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│                   API Gateway Layer                      │
+│         (CORS, Authentication, Rate Limiting)            │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│                  Django Application                      │
+│  ┌────────────┬────────────┬────────────┬────────────┐  │
+│  │   Users    │  Projects  │Investments │   Audit    │  │
+│  │    App     │    App     │    App     │    App     │  │
+│  └────────────┴────────────┴────────────┴────────────┘  │
+│  ┌────────────┬────────────┬────────────┬────────────┐  │
+│  │   Access   │Notifications│ Dashboard  │ Favorites  │  │
+│  │  Requests  │    App     │    App     │    App     │  │
+│  └────────────┴────────────┴────────────┴────────────┘  │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│                  PostgreSQL Database                     │
+│     (Users, Projects, Investments, Audit Logs, etc.)     │
+└──────────────────────────────────────────────────────────┘
 ```
-
-### Authentication
-All protected endpoints require JWT authentication:
-```http
-Authorization: Bearer <access_token>
-```
-
-### Interactive API Documentation
-- **Swagger UI**: `http://localhost:8000/api/swagger/`
-- **ReDoc**: `http://localhost:8000/api/redoc/`
-- **OpenAPI Schema**: `http://localhost:8000/api/schema/`
-
----
-
-### API Endpoints by Role
-
-#### 🔹 Authentication & User Management (`/api/v1/auth/`)
-
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|--------|
-| POST | `/register/` | User registration | Public |
-| POST | `/login/` | User login (returns JWT tokens) | Public |
-| POST | `/logout/` | User logout (blacklist refresh token) | Authenticated |
-| POST | `/verify-email/` | Verify email with token | Public |
-| POST | `/password-reset/` | Request password reset | Public |
-| POST | `/password-reset-confirm/` | Confirm password reset | Public |
-| POST | `/google/` | Google OAuth login | Public |
-| GET | `/profile/` | Get user profile | Authenticated |
-| PUT/PATCH | `/profile/` | Update user profile | Authenticated |
-| POST | `/token/refresh/` | Refresh access token | Authenticated |
-
----
-
-#### 🔹 Developer Endpoints
-
-##### Project Management (`/api/v1/projects/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| POST | `/` | Create new project | Developer |
-| GET | `/my/` | List own projects | Developer |
-| GET/PUT/PATCH | `/{id}/` | View/Update project | Developer (owner) |
-| POST | `/{id}/submit/` | Submit project for review | Developer (owner) |
-| POST | `/{id}/media/` | Upload project media | Developer (owner) |
-| GET | `/{id}/media/list/` | List project media | Developer (owner) |
-
----
-
-#### 🔹 Admin Endpoints
-
-##### Project Review (`/api/v1/projects/admin/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| GET | `/projects/pending/` | List pending projects | Admin |
-| POST | `/projects/{id}/approve/` | Approve project | Admin |
-| POST | `/projects/{id}/reject/` | Reject project | Admin |
-| POST | `/projects/{id}/request-changes/` | Request changes | Admin |
-
-##### Audit Logs (`/api/v1/audit/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| GET | `/admin/audit-logs/` | List all audit logs | Admin |
-
-##### Payment Transactions (`/api/v1/investments/admin/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| GET | `/transactions/` | List all transactions | Admin |
-| GET | `/transactions/{id}/` | View transaction details | Admin |
-
-##### Dashboard (`/api/v1/dashboard/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| GET | `/admin/` | Admin dashboard analytics | Admin |
-
----
-
-#### 🔹 Investor Endpoints
-
-##### Project Discovery (`/api/v1/projects/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| GET | `/browse/` | Browse approved projects | Investor |
-| GET | `/{id}/detail/` | View project details | Investor |
-| POST | `/compare/` | Compare multiple projects | Investor |
-
-##### Investments (`/api/v1/investments/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| POST | `/initiate/` | Initiate share purchase | Investor (verified email) |
-| POST | `/payments/callback/` | Payment gateway callback | System |
-| GET | `/my/` | List own investments | Investor |
-| GET | `/{id}/` | View investment details | Investor (owner) |
-| GET | `/portfolio/summary/` | Portfolio summary | Investor |
-
-##### Favorites (`/api/v1/favorites/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| GET | `/` | List favorite projects | Investor |
-| POST | `/` | Add project to favorites | Investor |
-| DELETE | `/{id}/` | Remove from favorites | Investor |
-
-##### Access Requests (`/api/v1/access-requests/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| POST | `/` | Request access to restricted content | Investor |
-| GET | `/my/` | List own access requests | Investor |
-
-##### Notifications (`/api/v1/notifications/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| GET | `/` | List notifications | Authenticated |
-| GET | `/unread-count/` | Get unread count | Authenticated |
-| POST | `/{id}/mark-read/` | Mark as read | Authenticated |
-| POST | `/mark-all-read/` | Mark all as read | Authenticated |
-
-##### Dashboard (`/api/v1/dashboard/`)
-
-| Method | Endpoint | Description | Required Role |
-|--------|----------|-------------|---------------|
-| GET | `/investor/` | Investor dashboard analytics | Investor |
-| GET | `/developer/` | Developer dashboard analytics | Developer |
-
----
-
-### Sample API Requests
-
-#### Register User
-```http
-POST /api/v1/auth/register/
-Content-Type: application/json
-
-{
-  "email": "investor@example.com",
-  "password": "SecurePass123!",
-  "first_name": "John",
-  "last_name": "Doe",
-  "role": "INVESTOR"
-}
-```
-
-#### Login
-```http
-POST /api/v1/auth/login/
-Content-Type: application/json
-
-{
-  "email": "investor@example.com",
-  "password": "SecurePass123!"
-}
-```
-
-**Response:**
-```json
-{
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-  "user": {
-    "id": "uuid-here",
-    "email": "investor@example.com",
-    "role": "INVESTOR",
-    "is_email_verified": false
-  }
-}
-```
-
-#### Initiate Investment
-```http
-POST /api/v1/investments/initiate/
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "project_id": "project-uuid",
-  "shares_to_purchase": 10
-}
-```
-
-**Response:**
-```json
-{
-  "reference_id": "TXN-20260118-ABC123",
-  "amount": 1000.00,
-  "payment_url": "https://payment-gateway.com/pay/...",
-  "message": "Payment initiated successfully"
-}
-```
-
----
-
-## 🛠️ Tech Stack
-
-### Backend
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| **Python** | 3.12 | Core programming language |
-| **Django** | 4.2.11 | Web framework |
-| **Django REST Framework** | 3.x | API development |
-| **PostgreSQL** | 16 | Primary database |
-| **JWT (SimpleJWT)** | 2.7.0 | Authentication |
-| **drf-spectacular** | Latest | OpenAPI schema generation |
-| **django-cors-headers** | Latest | CORS handling |
-| **django-filter** | Latest | Query filtering |
-| **Pillow** | 10.2.0 | Image processing |
-| **python-decouple** | Latest | Environment configuration |
-| **psycopg2-binary** | Latest | PostgreSQL adapter |
-
-### Frontend (Separate Repository)
-
-| Technology | Purpose |
-|------------|---------|
-| **React** | UI framework |
-| **Vite** | Build tool |
-| **Redux** | State management |
-| **Tailwind CSS** | Styling |
-| **Axios** | HTTP client |
-
-### DevOps & Tools
-
-| Tool | Purpose |
-|------|---------|
-| **Docker** | Containerization |
-| **Docker Compose** | Multi-container orchestration |
-| **Git** | Version control |
-| **Postman** | API testing |
-| **SonarQube** | Code quality analysis |
-
----
-
-## 🚀 Installation & Setup
-
-### Prerequisites
-
-- **Python**: 3.12 or higher
-- **PostgreSQL**: 16 or higher
-- **pip**: Latest version
-- **virtualenv** (recommended)
-- **Docker & Docker Compose** (optional, for containerized setup)
-
----
-
-### Option 1: Local Setup (Without Docker)
-
-#### 1. Clone the Repository
-```bash
-git clone https://github.com/yourusername/crowdfunding-platform.git
-cd crowdfunding-platform
-```
-
-#### 2. Create Virtual Environment
-```bash
-# Create virtual environment
-python3.12 -m venv venv
-
-# Activate virtual environment
-# On Linux/Mac:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
-```
-
-#### 3. Install Dependencies
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-#### 4. Configure Environment Variables
-
-Create a `.env` file in the project root:
-
-```bash
-# Database Configuration
-POSTGRES_DB=crowdfunding_db
-POSTGRES_USER=crowdfunding_user
-POSTGRES_PASSWORD=your_secure_password
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-
-# Django Settings
-SECRET_KEY=your-secret-key-here-generate-with-django
-DEBUG=True
-ALLOWED_HOSTS=127.0.0.1,localhost
-
-# CORS Settings
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-
-# JWT Settings (optional, defaults are in settings)
-# ACCESS_TOKEN_LIFETIME_HOURS=1
-# REFRESH_TOKEN_LIFETIME_DAYS=7
-
-# Email Configuration (for development, uses console backend)
-EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-DEFAULT_FROM_EMAIL=Crowdfunding Platform <noreply@crowdfunding.com>
-
-# Frontend URL
-FRONTEND_URL=http://localhost:3000
-
-# Google OAuth (optional)
-GOOGLE_OAUTH_CLIENT_ID=your-google-client-id
-GOOGLE_OAUTH_CLIENT_SECRET=your-google-client-secret
-```
-
-**Generate SECRET_KEY:**
-```bash
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-```
-
-#### 5. Setup PostgreSQL Database
-
-```bash
-# Login to PostgreSQL
-sudo -u postgres psql
-
-# Create database and user
-CREATE DATABASE crowdfunding_db;
-CREATE USER crowdfunding_user WITH PASSWORD 'your_secure_password';
-ALTER ROLE crowdfunding_user SET client_encoding TO 'utf8';
-ALTER ROLE crowdfunding_user SET default_transaction_isolation TO 'read committed';
-ALTER ROLE crowdfunding_user SET timezone TO 'UTC';
-GRANT ALL PRIVILEGES ON DATABASE crowdfunding_db TO crowdfunding_user;
-\q
-```
-
-#### 6. Run Migrations
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-#### 7. Create Superuser (Admin)
-```bash
-python manage.py createsuperuser
-# Follow prompts to create admin account
-```
-
-#### 8. Collect Static Files
-```bash
-python manage.py collectstatic --noinput
-```
-
-#### 9. Run Development Server
-```bash
-python manage.py runserver
-```
-
-The API will be available at: `http://localhost:8000/`
-
----
-
-### Option 2: Docker Setup
-
-#### 1. Clone the Repository
-```bash
-git clone https://github.com/yourusername/crowdfunding-platform.git
-cd crowdfunding-platform
-```
-
-#### 2. Configure Environment Variables
-
-Create a `.env` file (use the same template as above, but set):
-```bash
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-```
-
-#### 3. Build and Run Containers
-```bash
-# Build and start containers
-docker-compose up --build
-
-# Run in detached mode
-docker-compose up -d
-```
-
-#### 4. Run Migrations Inside Container
-```bash
-docker-compose exec web python manage.py migrate
-```
-
-#### 5. Create Superuser
-```bash
-docker-compose exec web python manage.py createsuperuser
-```
-
-#### 6. Access the Application
-- **API**: `http://localhost:8000/`
-- **Admin Panel**: `http://localhost:8000/admin/`
-- **Swagger UI**: `http://localhost:8000/api/swagger/`
-
-#### 7. Stop Containers
-```bash
-docker-compose down
-
-# Remove volumes (caution: deletes database data)
-docker-compose down -v
-```
-
----
-
-### Frontend Setup
-
-> **Note**: The frontend is maintained in a separate repository.
-
-#### 1. Navigate to Frontend Directory
-```bash
-cd /path/to/frontend
-```
-
-#### 2. Install Dependencies
-```bash
-npm install
-```
-
-#### 3. Configure Environment Variables
-
-Create `.env` file:
-```bash
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-```
-
-#### 4. Run Development Server
-```bash
-npm run dev
-```
-
-The frontend will be available at: `http://localhost:3000/`
-
----
-
-### Verify Installation
-
-1. **Check API Health**:
-   ```bash
-   curl http://localhost:8000/api/v1/auth/register/
-   ```
-
-2. **Access Swagger UI**: Visit `http://localhost:8000/api/swagger/`
-
-3. **Login to Admin Panel**: Visit `http://localhost:8000/admin/`
 
 ---
 
@@ -842,225 +160,1041 @@ The frontend will be available at: `http://localhost:3000/`
 
 ```
 crowdfunding_platform/
+├── config/                      # Project configuration
+│   ├── __init__.py
+│   ├── asgi.py                 # ASGI config for WebSockets
+│   ├── settings/               # Split settings
+│   │   ├── base.py            # Base settings
+│   │   ├── development.py     # Development settings
+│   │   └── production.py      # Production settings
+│   ├── urls.py                # Main URL configuration
+│   └── wsgi.py                # WSGI config
 │
-├── apps/                           # Django applications (modular architecture)
-│   ├── access_requests/            # Access request management
-│   │   ├── models.py               # AccessRequest model
-│   │   ├── serializers.py          # Request/response serializers
-│   │   ├── views.py                # API views
-│   │   ├── urls.py                 # URL routing
-│   │   └── permissions.py          # Custom permissions
+├── apps/                       # Django applications
+│   ├── users/                 # User management & auth
+│   │   ├── models.py          # User, EmailVerificationToken, PasswordResetToken
+│   │   ├── serializers.py     # User serializers
+│   │   ├── views.py           # Auth endpoints
+│   │   ├── services.py        # Business logic
+│   │   ├── permissions.py     # Custom permissions
+│   │   ├── managers.py        # Custom user manager
+│   │   ├── urls.py            # User routes
+│   │   ├── admin_urls.py      # Admin user management routes
+│   │   └── migrations/
 │   │
-│   ├── audit/                      # Audit logging system
-│   │   ├── models.py               # AuditLog model
-│   │   ├── views.py                # Admin audit log views
-│   │   ├── permissions.py          # Admin-only permissions
-│   │   └── urls.py
+│   ├── projects/              # Project management
+│   │   ├── models.py          # Project, ProjectMedia
+│   │   ├── serializers.py     # Project serializers
+│   │   ├── views.py           # Project CRUD, admin actions
+│   │   ├── services.py        # Project workflow logic
+│   │   ├── urls.py            # Project routes
+│   │   └── migrations/
 │   │
-│   ├── dashboard/                  # Role-specific dashboards
-│   │   ├── views.py                # Dashboard analytics views
-│   │   ├── serializers.py          # Dashboard data serializers
-│   │   └── urls.py
+│   ├── investments/           # Investment & wallet system
+│   │   ├── models.py          # PaymentTransaction, SharePurchase
+│   │   ├── serializers.py     # Investment serializers
+│   │   ├── views.py           # Investment endpoints
+│   │   ├── services.py        # Payment processing logic
+│   │   ├── urls.py            # Investment routes
+│   │   └── migrations/
 │   │
-│   ├── favorites/                  # Project favorites/bookmarks
-│   │   ├── models.py               # Favorite model
-│   │   ├── views.py                # Favorite CRUD operations
-│   │   └── urls.py
+│   ├── access_requests/       # Content access control
+│   │   ├── models.py          # AccessRequest
+│   │   ├── serializers.py     # Access request serializers
+│   │   ├── views.py           # Access request endpoints
+│   │   ├── services.py        # Access control logic
+│   │   ├── urls.py            # Access request routes
+│   │   └── migrations/
 │   │
-│   ├── investments/                # Investment & payment processing
-│   │   ├── models.py               # PaymentTransaction, SharePurchase
-│   │   ├── serializers.py          # Investment serializers
-│   │   ├── views.py                # Investment initiation, callbacks
-│   │   ├── services.py             # Business logic (atomic transactions)
-│   │   └── urls.py
+│   ├── notifications/         # Real-time notifications
+│   │   ├── models.py          # Notification, NotificationPreference
+│   │   ├── serializers.py     # Notification serializers
+│   │   ├── views.py           # Notification endpoints
+│   │   ├── services.py        # Notification creation logic
+│   │   ├── consumers.py       # WebSocket consumers
+│   │   ├── routing.py         # WebSocket routing
+│   │   ├── urls.py            # Notification routes
+│   │   └── migrations/
 │   │
-│   ├── notifications/              # Real-time notification system
-│   │   ├── models.py               # Notification model
-│   │   ├── views.py                # Notification CRUD
-│   │   ├── services.py             # Notification creation logic
-│   │   └── urls.py
+│   ├── audit/                 # Audit logging
+│   │   ├── models.py          # AuditLog
+│   │   ├── serializers.py     # Audit serializers
+│   │   ├── views.py           # Audit log endpoints
+│   │   ├── services.py        # Logging utilities
+│   │   ├── urls.py            # Audit routes
+│   │   └── migrations/
 │   │
-│   ├── projects/                   # Project management
-│   │   ├── models.py               # Project, ProjectMedia models
-│   │   ├── serializers.py          # Project serializers
-│   │   ├── views.py                # CRUD, approval, browsing views
-│   │   ├── permissions.py          # Role-based permissions
-│   │   ├── filters.py              # Search/filter logic
-│   │   └── urls.py
+│   ├── dashboard/             # Analytics & statistics
+│   │   ├── views.py           # Dashboard endpoints
+│   │   ├── services.py        # Analytics calculations
+│   │   ├── serializers.py     # Dashboard serializers
+│   │   └── urls.py            # Dashboard routes
 │   │
-│   └── users/                      # Authentication & user management
-│       ├── models.py               # User, EmailVerificationToken, PasswordResetToken
-│       ├── managers.py             # Custom user manager
-│       ├── serializers.py          # User, auth serializers
-│       ├── views.py                # Registration, login, OAuth, profile
-│       ├── services.py             # Email verification, password reset
-│       └── urls.py
+│   └── favorites/             # User favorites
+│       ├── models.py          # Favorite
+│       ├── serializers.py     # Favorite serializers
+│       ├── views.py           # Favorite endpoints
+│       ├── urls.py            # Favorite routes
+│       └── migrations/
 │
-├── config/                         # Django project configuration
-│   ├── settings/                   # Split settings
-│   │   ├── base.py                 # Base settings
-│   │   ├── development.py          # Development overrides
-│   │   ├── production.py           # Production settings
-│   │   └── test.py                 # Test settings
-│   ├── urls.py                     # Root URL configuration
-│   └── wsgi.py                     # WSGI entry point
+├── utils/                     # Shared utilities
+│   ├── exceptions.py          # Custom exceptions
+│   ├── permissions.py         # Shared permissions
+│   ├── renderers.py           # Custom renderers
+│   ├── responses.py           # Standardized responses
+│   └── validators.py          # Custom validators
 │
-├── utils/                          # Shared utilities
-│   ├── pagination.py               # Custom pagination classes
-│   ├── permissions.py              # Reusable permission classes
-│   └── validators.py               # Custom validators
-│
-├── media/                          # User-uploaded files (gitignored)
-│   └── projects/                   # Project images and 3D models
-│
-├── static/                         # Static files (CSS, JS, images)
-├── staticfiles/                    # Collected static files (production)
-├── templates/                      # Email templates
-│
-├── .env                            # Environment variables (gitignored)
-├── .gitignore                      # Git ignore rules
-├── Dockerfile                      # Docker image definition
-├── docker-compose.yml              # Multi-container setup
-├── manage.py                       # Django management script
-├── requirements.txt                # Python dependencies
-├── schema.yaml                     # OpenAPI schema (auto-generated)
-└── README.md                       # This file
+├── media/                     # User-uploaded files
+├── static/                    # Static files
+├── templates/                 # Email templates
+├── .env                       # Environment variables
+├── .gitignore                # Git ignore rules
+├── docker-compose.yml        # Docker configuration
+├── Dockerfile                # Docker image
+├── manage.py                 # Django management script
+├── requirements.txt          # Python dependencies
+└── README.md                 # This file
+```
+
+### App Descriptions
+
+| App | Purpose | Key Models |
+|-----|---------|-----------|
+| **users** | Authentication, user management, roles | User, EmailVerificationToken, PasswordResetToken |
+| **projects** | Project CRUD, approval workflow | Project, ProjectMedia |
+| **investments** | Share purchases, payments, wallet | PaymentTransaction, SharePurchase |
+| **access_requests** | Restricted content access control | AccessRequest |
+| **notifications** | Real-time user notifications | Notification, NotificationPreference |
+| **audit** | Activity logging for governance | AuditLog |
+| **dashboard** | Analytics and statistics | (No models, aggregates data) |
+| **favorites** | User project favorites | Favorite |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Python**: 3.10 or higher
+- **PostgreSQL**: 14 or higher
+- **pip**: Latest version
+- **Git**: For version control
+- **Docker** (optional): For containerized deployment
+
+### Installation Steps
+
+#### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd crowdfunding_platform
+```
+
+#### 2. Create Virtual Environment
+
+```bash
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate virtual environment
+# On Linux/Mac:
+source .venv/bin/activate
+
+# On Windows:
+.venv\Scripts\activate
+```
+
+#### 3. Install Dependencies
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+#### 4. Setup Environment Variables
+
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit .env with your configuration
+nano .env  # or use your preferred editor
+```
+
+**Required environment variables:**
+```env
+# Django
+DEBUG=True
+SECRET_KEY=your-very-strong-secret-key-change-this
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database
+POSTGRES_DB=crowdfunding_db
+POSTGRES_USER=crowdfunding_user
+POSTGRES_PASSWORD=your-password
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+
+# Frontend
+FRONTEND_URL=http://localhost:3000
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+
+# Email
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES=60
+
+# JWT
+SIMPLE_JWT_ACCESS_TOKEN_LIFETIME_MINUTES=60
+SIMPLE_JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
+```
+
+#### 5. Setup Database
+
+**Option A: Using Docker**
+
+```bash
+# Start PostgreSQL container
+docker-compose up -d db
+
+# Wait for database to be ready
+sleep 5
+```
+
+**Option B: Local PostgreSQL**
+
+```bash
+# Create database
+createdb crowdfunding_db
+
+# Or using psql
+psql -U postgres -c "CREATE DATABASE crowdfunding_db;"
+```
+
+#### 6. Run Migrations
+
+```bash
+python manage.py migrate
+```
+
+#### 7. Create Superuser
+
+```bash
+python manage.py createsuperuser
+# Follow prompts to create admin account
+```
+
+#### 8. Run Development Server
+
+```bash
+python manage.py runserver
+```
+
+#### 9. Access API
+
+- **API Base**: http://localhost:8000/api/v1/
+- **Swagger UI**: http://localhost:8000/api/swagger/
+- **ReDoc**: http://localhost:8000/api/redoc/
+- **Admin Panel**: http://localhost:8000/admin/
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `DEBUG` | ✅ | Debug mode (False in production) | `True` |
+| `SECRET_KEY` | ✅ | Django secret key | `long-random-string` |
+| `ALLOWED_HOSTS` | ✅ | Allowed host names | `localhost,127.0.0.1` |
+| `POSTGRES_DB` | ✅ | Database name | `crowdfunding_db` |
+| `POSTGRES_USER` | ✅ | Database user | `crowdfunding_user` |
+| `POSTGRES_PASSWORD` | ✅ | Database password | `secure-password` |
+| `POSTGRES_HOST` | ✅ | Database host | `localhost` or `db` |
+| `POSTGRES_PORT` | ✅ | Database port | `5432` |
+| `FRONTEND_URL` | ✅ | Frontend application URL | `http://localhost:3000` |
+| `CORS_ALLOWED_ORIGINS` | ✅ | CORS allowed origins | `http://localhost:3000` |
+| `EMAIL_BACKEND` | ❌ | Email backend class | `django.core.mail.backends.smtp.EmailBackend` |
+| `EMAIL_HOST` | ❌ | SMTP server | `smtp.gmail.com` |
+| `EMAIL_PORT` | ❌ | SMTP port | `587` |
+| `EMAIL_HOST_USER` | ❌ | Email username | `your-email@gmail.com` |
+| `EMAIL_HOST_PASSWORD` | ❌ | Email password | `app-password` |
+| `SITE_DOMAIN` | ❌ | Site domain for emails | `127.0.0.1:8000` |
+
+### Settings Structure
+
+The project uses split settings for different environments:
+
+```python
+config/settings/
+├── base.py          # Common settings
+├── development.py   # Development-specific
+└── production.py    # Production-specific
+```
+
+To use specific settings:
+
+```bash
+# Development (default)
+python manage.py runserver
+
+# Production
+python manage.py runserver --settings=config.settings.production
 ```
 
 ---
 
-## ✨ Features
+## 🗄️ Database
 
-### Core Features
+### Models Overview
 
-✅ **User Authentication & Authorization**
-- Email/password registration with verification
-- Google OAuth integration
-- JWT-based stateless authentication
-- Role-based access control (Admin, Developer, Investor)
-- Password reset functionality
+| Model | App | Purpose | Key Fields |
+|-------|-----|---------|-----------|
+| `User` | users | Custom user model | email, role, is_email_verified, is_active |
+| `EmailVerificationToken` | users | Email verification | user, token, expires_at |
+| `PasswordResetToken` | users | Password reset | user, token, expires_at |
+| `Project` | projects | Crowdfunding projects | title, status, total_project_value, total_shares, share_price |
+| `ProjectMedia` | projects | Project media files | project, media_type, file_url |
+| `PaymentTransaction` | investments | Payment tracking | investor, project, amount, status, reference_id |
+| `SharePurchase` | investments | Share ownership | investor, project, shares_purchased, price_per_share |
+| `AccessRequest` | access_requests | Content access | investor, project, status, decided_by |
+| `Notification` | notifications | User notifications | user, notification_type, message, is_read |
+| `AuditLog` | audit | Activity logging | actor, action, entity_type, entity_id, metadata |
+| `Favorite` | favorites | User favorites | user, project |
 
-✅ **Project Management**
-- Create and manage crowdfunding projects
-- Multi-status workflow (Draft → Pending → Approved/Rejected)
-- Upload images and 3D models
-- Dynamic field-level restrictions
-- Project comparison tool
+### Database Migrations
 
-✅ **Investment System**
-- Share-based funding model
-- Atomic transaction processing
-- Idempotent payment handling
-- Portfolio tracking
-- Investment history
+```bash
+# Create new migrations after model changes
+python manage.py makemigrations
 
-✅ **Access Control**
-- Request access to restricted project data
-- Developer approval workflow
-- Granular permission system
+# Apply migrations
+python manage.py migrate
 
-✅ **Notifications**
-- Real-time notification system
-- Project status updates
-- Investment confirmations
-- Access request decisions
+# Show migration status
+python manage.py showmigrations
 
-✅ **Audit Logging**
-- Immutable audit trail
-- Admin action tracking
-- Complete traceability
+# Rollback to specific migration
+python manage.py migrate <app_name> <migration_number>
 
-✅ **Dashboards**
-- Role-specific analytics
-- Real-time statistics
-- Investment summaries
+# Show SQL for migration
+python manage.py sqlmigrate <app_name> <migration_number>
+```
+
+### Database Management
+
+```bash
+# Enter database shell
+python manage.py dbshell
+
+# Dump data to JSON
+python manage.py dumpdata > backup.json
+
+# Load data from JSON
+python manage.py loaddata backup.json
+
+# Flush database (WARNING: deletes all data)
+python manage.py flush
+```
 
 ---
 
-## 🔒 Security & Best Practices
+## 🔐 Authentication & Authorization
 
-### Implemented Security Measures
+### JWT Authentication Flow
 
-1. **Authentication & Authorization**
-   - JWT tokens with short expiration (1 hour access, 7 days refresh)
-   - Token blacklisting on logout
-   - Email verification enforcement
-   - Password strength validation
+```
+1. User logs in with email/password
+   ↓
+2. Server validates credentials
+   ↓
+3. Server generates access_token & refresh_token
+   ↓
+4. Client stores tokens
+   ↓
+5. Client includes access_token in Authorization header
+   ↓
+6. Server validates token on each request
+   ↓
+7. When access_token expires, use refresh_token to get new one
+```
 
-2. **Data Validation**
-   - Positive validators on all numeric fields
-   - Decimal precision enforcement (12 digits, 2 decimal places)
-   - Input sanitization via DRF serializers
+### Login Endpoint
 
-3. **Transaction Safety**
-   - Atomic database transactions for share purchases
-   - Row-level locking to prevent race conditions
-   - Idempotent payment processing via `reference_id`
+```bash
+POST /api/v1/auth/login/
+Content-Type: application/json
 
-4. **Access Control**
-   - View-level permissions
-   - Object-level permissions
-   - Field-level restrictions
-   - CORS configuration
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
 
-5. **Audit & Compliance**
-   - Immutable audit logs
-   - Complete action traceability
-   - Payment transaction history
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  }
+}
+```
 
-6. **Error Handling**
-   - Standardized HTTP status codes
-   - Consistent error response format
-   - No sensitive data in error messages
+### Using Tokens
 
-7. **Database Security**
-   - Indexed fields for performance
-   - Foreign key constraints
-   - Unique constraints where applicable
+```bash
+# Include access token in Authorization header
+curl -X GET http://localhost:8000/api/v1/projects/ \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### Refresh Token
+
+```bash
+POST /api/v1/auth/token/refresh/
+Content-Type: application/json
+
+{
+  "refresh": "<refresh_token>"
+}
+```
+
+### Role-Based Access Control
+
+| Role | Permissions |
+|------|-------------|
+| **ADMIN** | • Manage all users<br>• Approve/reject projects<br>• View all transactions<br>• Manage access requests<br>• View audit logs |
+| **DEVELOPER** | • Create projects<br>• Edit own projects<br>• View project analytics<br>• Respond to investor questions |
+| **INVESTOR** | • Browse approved projects<br>• Purchase shares<br>• Request access to restricted content<br>• View portfolio |
+
+---
+
+## 📦 Django Apps Structure
+
+### Users App
+
+**Purpose**: User authentication, profiles, and role management
+
+**Models**:
+- `User`: Custom user model with email as username, role field (ADMIN/DEVELOPER/INVESTOR)
+- `EmailVerificationToken`: Token-based email verification
+- `PasswordResetToken`: Secure password reset tokens
+
+**Key Endpoints**:
+- `POST /api/v1/auth/register/` - Register new user
+- `POST /api/v1/auth/login/` - Login with email/password
+- `POST /api/v1/auth/logout/` - Logout (blacklist refresh token)
+- `POST /api/v1/auth/verify-email/` - Verify email with token
+- `POST /api/v1/auth/password-reset/` - Request password reset
+- `POST /api/v1/auth/password-reset-confirm/` - Confirm password reset
+- `GET /api/v1/auth/profile/` - Get user profile
+- `POST /api/v1/auth/google/` - Google OAuth login
+
+---
+
+### Projects App
+
+**Purpose**: Project management, CRUD operations, and approval workflow
+
+**Models**:
+- `Project`: Main project model with status workflow (DRAFT → PENDING → APPROVED/REJECTED/NEEDS_CHANGES)
+- `ProjectMedia`: Images, videos, 3D models associated with projects
+
+**Key Endpoints**:
+- `GET /api/v1/projects/` - List all projects
+- `POST /api/v1/projects/` - Create new project (Developer only)
+- `GET /api/v1/projects/{id}/` - Get project details
+- `PUT /api/v1/projects/{id}/` - Update project (Developer only)
+- `DELETE /api/v1/projects/{id}/` - Delete project (Developer only)
+- `POST /api/v1/projects/{id}/submit/` - Submit for admin review
+- `GET /api/v1/projects/browse/` - Browse approved projects (Public)
+- `POST /api/v1/projects/admin/projects/{id}/approve/` - Approve project (Admin only)
+- `POST /api/v1/projects/admin/projects/{id}/reject/` - Reject project (Admin only)
+
+---
+
+### Investments App
+
+**Purpose**: Share purchases, payment processing, and wallet management
+
+**Models**:
+- `PaymentTransaction`: Tracks all payment attempts (INITIATED → SUCCESS/FAILED)
+- `SharePurchase`: Records successful share purchases
+
+**Key Endpoints**:
+- `POST /api/v1/investments/initiate/` - Initiate investment
+- `POST /api/v1/investments/payments/callback/` - Payment gateway callback
+- `GET /api/v1/investments/my/` - List my investments
+- `GET /api/v1/investments/{id}/` - Get investment details
+- `GET /api/v1/investments/portfolio/summary/` - Portfolio summary
+- `GET /api/v1/investments/admin/transactions/` - All transactions (Admin only)
+
+---
+
+### Access Requests App
+
+**Purpose**: Control access to restricted project content
+
+**Models**:
+- `AccessRequest`: Investor requests to view restricted project data (PENDING → APPROVED/REJECTED/REVOKED)
+
+**Key Endpoints**:
+- `POST /api/v1/access-requests/` - Create access request
+- `GET /api/v1/access-requests/my/` - My access requests
+- `GET /api/v1/access-requests/admin/` - All requests (Admin only)
+- `POST /api/v1/access-requests/admin/{id}/approve/` - Approve request (Admin only)
+- `POST /api/v1/access-requests/admin/{id}/reject/` - Reject request (Admin only)
+- `POST /api/v1/access-requests/admin/{id}/revoke/` - Revoke access (Admin only)
+
+---
+
+### Notifications App
+
+**Purpose**: Real-time user notifications via WebSocket
+
+**Models**:
+- `Notification`: User notifications with type, message, and read status
+- `NotificationPreference`: User notification preferences
+
+**Key Endpoints**:
+- `GET /api/v1/notifications/` - List notifications
+- `PATCH /api/v1/notifications/{id}/read/` - Mark as read
+- `POST /api/v1/notifications/mark-all-read/` - Mark all as read
+- `GET /api/v1/notifications/unread-count/` - Get unread count
+- `GET /api/v1/notifications/preferences/` - Get preferences
+- `PUT /api/v1/notifications/preferences/` - Update preferences
+
+**WebSocket**: `ws://localhost:8000/ws/notifications/`
+
+---
+
+### Audit App
+
+**Purpose**: Activity logging for governance and compliance
+
+**Models**:
+- `AuditLog`: Immutable log of all admin actions with actor, action, entity, and metadata
+
+**Key Endpoints**:
+- `GET /api/v1/audit/admin/audit-logs/` - View audit logs (Admin only)
+
+---
+
+## 🌐 API Endpoints
+
+### Complete Endpoint List
+
+#### Authentication & Users
+
+```
+POST   /api/v1/auth/register/                    - Register user
+POST   /api/v1/auth/login/                       - Login
+POST   /api/v1/auth/logout/                      - Logout
+POST   /api/v1/auth/verify-email/                - Verify email
+POST   /api/v1/auth/password-reset/              - Request password reset
+POST   /api/v1/auth/password-reset-confirm/      - Confirm password reset
+POST   /api/v1/auth/google/                      - Google OAuth
+GET    /api/v1/auth/profile/                     - Get profile
+POST   /api/v1/auth/token/refresh/               - Refresh JWT token
+```
+
+#### Projects
+
+```
+GET    /api/v1/projects/                         - List projects
+POST   /api/v1/projects/                         - Create project
+GET    /api/v1/projects/{id}/                    - Get project
+PUT    /api/v1/projects/{id}/                    - Update project
+DELETE /api/v1/projects/{id}/                    - Delete project
+POST   /api/v1/projects/{id}/submit/             - Submit for review
+GET    /api/v1/projects/browse/                  - Browse approved
+POST   /api/v1/projects/{id}/media/              - Upload media
+```
+
+#### Admin - Users
+
+```
+GET    /api/v1/admin/users/                      - List all users
+GET    /api/v1/admin/users/{id}/                 - Get user
+PUT    /api/v1/admin/users/{id}/                 - Update user
+PATCH  /api/v1/admin/users/{id}/                 - Partial update
+DELETE /api/v1/admin/users/{id}/                 - Deactivate user
+POST   /api/v1/admin/users/{id}/verify-email/    - Verify email
+POST   /api/v1/admin/users/{id}/deactivate/      - Deactivate user
+```
+
+#### Admin - Projects
+
+```
+GET    /api/v1/projects/admin/projects/pending/           - Pending projects
+POST   /api/v1/projects/admin/projects/{id}/approve/      - Approve
+POST   /api/v1/projects/admin/projects/{id}/reject/       - Reject
+POST   /api/v1/projects/admin/projects/{id}/request-changes/ - Request changes
+POST   /api/v1/projects/admin/projects/{id}/archive/      - Archive
+GET    /api/v1/projects/admin/projects/statistics/        - Platform stats
+```
+
+#### Investments
+
+```
+POST   /api/v1/investments/initiate/                      - Initiate investment
+GET    /api/v1/investments/my/                            - My investments
+GET    /api/v1/investments/{id}/                          - Investment details
+GET    /api/v1/investments/portfolio/summary/             - Portfolio summary
+POST   /api/v1/investments/payments/callback/             - Payment callback
+GET    /api/v1/investments/admin/transactions/            - All transactions (Admin)
+GET    /api/v1/investments/admin/transactions/{id}/       - Transaction detail (Admin)
+```
+
+#### Access Requests
+
+```
+POST   /api/v1/access-requests/                           - Create request
+GET    /api/v1/access-requests/my/                        - My requests
+GET    /api/v1/access-requests/admin/                     - All requests (Admin)
+POST   /api/v1/access-requests/admin/{id}/approve/        - Approve (Admin)
+POST   /api/v1/access-requests/admin/{id}/reject/         - Reject (Admin)
+POST   /api/v1/access-requests/admin/{id}/revoke/         - Revoke (Admin)
+```
+
+#### Notifications
+
+```
+GET    /api/v1/notifications/                             - List notifications
+PATCH  /api/v1/notifications/{id}/read/                   - Mark as read
+POST   /api/v1/notifications/mark-all-read/               - Mark all read
+GET    /api/v1/notifications/unread-count/                - Unread count
+GET    /api/v1/notifications/preferences/                 - Get preferences
+PUT    /api/v1/notifications/preferences/                 - Update preferences
+```
+
+#### Audit Logs
+
+```
+GET    /api/v1/audit/admin/audit-logs/                    - View logs (Admin)
+```
+
+#### Favorites
+
+```
+POST   /api/v1/favorites/                                 - Add favorite
+GET    /api/v1/favorites/                                 - List favorites
+DELETE /api/v1/favorites/{id}/                            - Remove favorite
+```
+
+#### Dashboard
+
+```
+GET    /api/v1/dashboard/admin/                           - Admin dashboard (Admin)
+GET    /api/v1/dashboard/developer/                       - Developer dashboard (Developer)
+GET    /api/v1/dashboard/investor/                        - Investor dashboard (Investor)
+```
+
+---
+
+## 📚 API Documentation
+
+### Interactive Documentation
+
+- **Swagger UI**: http://localhost:8000/api/swagger/
+- **ReDoc**: http://localhost:8000/api/redoc/
+- **OpenAPI Schema**: http://localhost:8000/api/schema/
+
+### Generate OpenAPI Schema
+
+```bash
+# Generate schema file
+python manage.py spectacular --file schema.yml
+
+# Validate schema
+python manage.py spectacular --validate
+```
+
+---
+
+## 🧪 Testing
+
+### Test Structure
+
+```
+tests/
+├── test_users.py              - User authentication tests
+├── test_projects.py           - Project management tests
+├── test_investments.py        - Investment system tests
+├── test_access_requests.py    - Access control tests
+├── test_notifications.py      - Notification tests
+├── test_audit.py              - Audit logging tests
+├── conftest.py                - Pytest fixtures
+└── factories.py               - Test data factories
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=apps --cov-report=html
+
+# Run specific test file
+pytest tests/test_users.py
+
+# Run specific test
+pytest tests/test_users.py::test_user_registration
+
+# Verbose output
+pytest -v
+
+# Show print statements
+pytest -s
+
+# Run tests matching pattern
+pytest -k "test_create"
+
+# Run with parallel execution
+pytest -n auto
+```
+
+### Coverage Report
+
+```bash
+# Generate HTML coverage report
+pytest --cov=apps --cov-report=html
+
+# View report
+open htmlcov/index.html  # Mac
+xdg-open htmlcov/index.html  # Linux
+```
+
+### Test Categories
+
+- **Unit Tests**: Models, serializers, utilities
+- **Integration Tests**: API endpoints, workflows
+- **Permission Tests**: Role-based access control
+- **Workflow Tests**: Project approval, investment flow
+
+---
+
+## 🛠️ Development
+
+### Common Commands
+
+```bash
+# Start development server
+python manage.py runserver
+
+# Start with specific port
+python manage.py runserver 8080
+
+# Create migrations
+python manage.py makemigrations
+
+# Apply migrations
+python manage.py migrate
+
+# Create superuser
+python manage.py createsuperuser
+
+# Enter Django shell
+python manage.py shell
+
+# Enter Django shell with iPython
+python manage.py shell -i ipython
+
+# Collect static files
+python manage.py collectstatic
+
+# Check for issues
+python manage.py check
+
+# Show URLs
+python manage.py show_urls
+
+# Flush database (WARNING: deletes all data)
+python manage.py flush
+```
+
+### Development Tools
+
+| Tool | Purpose | Command |
+|------|---------|---------|
+| **Black** | Code formatting | `black .` |
+| **isort** | Import sorting | `isort .` |
+| **Flake8** | Style checking | `flake8` |
+| **Mypy** | Type checking | `mypy .` |
+| **Pytest** | Testing | `pytest` |
+| **Coverage** | Code coverage | `pytest --cov` |
+
+---
+
+## 📊 Code Quality
+
+### Code Formatting
+
+```bash
+# Format code with Black
+black .
+
+# Sort imports
+isort .
+
+# Lint code
+flake8
+
+# Type checking
+mypy .
+
+# Run all checks
+black . && isort . && flake8 && mypy .
+```
+
+### Code Style Guidelines
+
+- Follow **PEP 8** style guide
+- Max line length: **88 characters** (Black default)
+- Use **type hints** for function parameters and return values
+- Write **docstrings** for all public functions and classes
+- Keep functions **small and focused** (single responsibility)
+- Use **meaningful variable names**
+
+### Pre-commit Hooks
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install hooks
+pre-commit install
+
+# Run manually
+pre-commit run --all-files
+```
+
+---
+
+## ❓ Troubleshooting
+
+### Common Issues
+
+#### ModuleNotFoundError
+
+**Problem**: `ModuleNotFoundError: No module named 'module_name'`
+
+**Solution**:
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# Install requirements
+pip install -r requirements.txt
+```
+
+---
+
+#### Database Connection Error
+
+**Problem**: `django.db.utils.OperationalError: could not connect to server`
+
+**Solution**:
+```bash
+# Check if PostgreSQL is running
+docker ps  # if using Docker
+# or
+sudo systemctl status postgresql  # if local
+
+# Start database
+docker-compose up -d db  # if using Docker
+# or
+sudo systemctl start postgresql  # if local
+
+# Check DATABASE_URL in .env
+```
+
+---
+
+#### CORS Error
+
+**Problem**: `CORS policy: No 'Access-Control-Allow-Origin' header`
+
+**Solution**:
+```bash
+# Add frontend URL to .env
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+
+# Restart server
+python manage.py runserver
+```
+
+---
+
+#### Migration Error
+
+**Problem**: `django.db.migrations.exceptions.InconsistentMigrationHistory`
+
+**Solution**:
+```bash
+# Option 1: Run sync
+python manage.py migrate --run-syncdb
+
+# Option 2: Fake migrations (if database is correct)
+python manage.py migrate --fake
+
+# Option 3: Reset migrations (WARNING: data loss)
+python manage.py migrate <app_name> zero
+python manage.py migrate
+```
+
+---
+
+#### 401 Unauthorized
+
+**Problem**: API returns 401 even with valid token
+
+**Solution**:
+```bash
+# Check token expiration
+# Tokens expire after 60 minutes by default
+
+# Refresh token
+POST /api/v1/auth/token/refresh/
+{
+  "refresh": "<refresh_token>"
+}
+
+# Check SIMPLE_JWT settings in .env
+```
+
+---
+
+#### Import Error
+
+**Problem**: `ImportError: cannot import name 'X' from 'Y'`
+
+**Solution**:
+```bash
+# Check Python path
+python -c "import sys; print(sys.path)"
+
+# Ensure virtual environment is activated
+which python  # should point to .venv/bin/python
+
+# Reinstall package
+pip uninstall <package>
+pip install <package>
+```
+
+---
+
+## 🔄 Deployment
+
+### Pre-deployment Checklist
+
+- [ ] Set `DEBUG=False` in production
+- [ ] Update `SECRET_KEY` with strong random value
+- [ ] Update `ALLOWED_HOSTS` with production domain
+- [ ] Configure production database (`DATABASE_URL`)
+- [ ] Set up email backend (SMTP settings)
+- [ ] Configure static files serving
+- [ ] Set up media files storage
+- [ ] Run all tests: `pytest`
+- [ ] Run migrations: `python manage.py migrate`
+- [ ] Collect static files: `python manage.py collectstatic`
+- [ ] Set up monitoring and logging
+- [ ] Configure HTTPS/SSL
+- [ ] Set up backup strategy
+
+### Production Settings
+
+```python
+# config/settings/production.py
+
+DEBUG = False
+ALLOWED_HOSTS = ['yourdomain.com', 'www.yourdomain.com']
+
+# Security
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+```
+
+### Docker Deployment
+
+```bash
+# Build image
+docker build -t crowdfunding-backend .
+
+# Run with docker-compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these guidelines:
+### How to Contribute
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/your-feature-name`
-3. **Commit changes**: `git commit -m 'Add some feature'`
-4. **Push to branch**: `git push origin feature/your-feature-name`
-5. **Open a Pull Request**
+1. **Fork** the repository
+2. Create a **feature branch**: `git checkout -b feature/amazing-feature`
+3. Make your changes
+4. Write or update **tests**
+5. Run quality checks: `black . && isort . && flake8 && pytest`
+6. **Commit** your changes: `git commit -m 'Add amazing feature'`
+7. **Push** to the branch: `git push origin feature/amazing-feature`
+8. Open a **Pull Request**
 
 ### Code Standards
 
-- Follow PEP 8 style guide for Python
-- Write docstrings for all classes and functions
-- Add unit tests for new features
-- Update documentation as needed
+- Follow **PEP 8** style guide
+- Write **docstrings** for all public functions
+- Add **type hints** to function signatures
+- Write **tests** for new features
+- Update **documentation** as needed
+- Keep commits **atomic** and **descriptive**
+
+### Pull Request Guidelines
+
+- Provide clear description of changes
+- Reference related issues
+- Include screenshots for UI changes
+- Ensure all tests pass
+- Update README if needed
+
+---
+
+## 📞 Support & Contact
+
+### Need Help?
+
+1. Check the [Troubleshooting](#-troubleshooting) section
+2. Review [API Documentation](#-api-documentation)
+3. Check test examples in `tests/` directory
+4. Open an issue on GitHub
+
+### Resources
+
+- **API Documentation**: http://localhost:8000/api/swagger/
+- **Django Documentation**: https://docs.djangoproject.com/
+- **DRF Documentation**: https://www.django-rest-framework.org/
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-## 📞 Contact & Support
-
-For questions, issues, or feature requests:
-
-- **GitHub Issues**: [Create an issue](https://github.com/yourusername/crowdfunding-platform/issues)
-- **Email**: support@crowdfundingplatform.com
-- **Documentation**: [Full API Docs](http://localhost:8000/api/swagger/)
-
----
-
-## 🙏 Acknowledgments
-
-- Django REST Framework team for the excellent API framework
-- PostgreSQL community for the robust database
-- All contributors and testers
-
----
-
-**Built with ❤️ by the Crowdfunding Platform Team**
+**Built with ❤️ using Django & Django REST Framework**
