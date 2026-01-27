@@ -103,9 +103,33 @@ class InvestmentInitiateResponseSerializer(serializers.Serializer):
     )
 
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            'Payment Callback Request Example',
+            value={
+                "payment_reference_id": "payment-uuid-123",
+                "success": True,
+                "gateway_payload": {
+                    "shares_requested": 10,
+                    "project_id": "71b7d9e6-f29a-46e0-9899-f0dd317403a7",
+                    "investor_id": "8d4594d3-7a6c-430d-bfbe-d521316deba2",
+                    "txn_id": "tve123",
+                    "amount": 1000.00,
+                    "transaction_id": "gw-txn-00123",
+                    "currency": "USD",
+                    "status": "captured",
+                    "timestamp": "2026-01-27T10:00:00Z"
+                }
+            }
+        )
+    ]
+)
 class PaymentCallbackSerializer(serializers.Serializer):
     """
-    Serializer for payment gateway callback.
+    Serializer for payment gateway callback (webhook).
+    
+    This endpoint receives webhooks from the payment gateway after payment processing.
     
     SRS Requirements:
     - Idempotent processing (enforced in service layer)
@@ -117,15 +141,15 @@ class PaymentCallbackSerializer(serializers.Serializer):
     """
     payment_reference_id = serializers.CharField(
         required=True,
-        help_text="Reference ID of the payment transaction"
+        help_text="Reference ID that matches the /initiate/ response. Used to find the PaymentTransaction."
     )
     success = serializers.BooleanField(
         required=True,
-        help_text="Whether payment was successful"
+        help_text="Whether payment was successful (true) or failed (false)"
     )
     gateway_payload = serializers.JSONField(
         required=True,
-        help_text="Raw payload from payment gateway"
+        help_text="Raw payload from payment gateway - MUST be JSON object with required fields"
     )
 
     def validate_payment_reference_id(self, value):
@@ -140,14 +164,33 @@ class PaymentCallbackSerializer(serializers.Serializer):
 
     def validate_gateway_payload(self, value):
         """
-        Ensure required keys exist in gateway payload.
-        Validates structure and presence of critical payment fields.
+        Validate gateway payload structure and required fields.
+        
+        SRS Requirements:
+        - gateway_payload must be a JSON object (dict)
+        - Must contain all required fields for SharePurchase creation
+        - Validates field types
+        
+        Required Fields:
+        - shares_requested (int): Number of shares being purchased
+        - project_id (string/uuid): Project being invested in
+        - investor_id (string/uuid): Investor making the purchase
+        - txn_id (string): Gateway transaction ID
+        - amount (decimal-compatible): Total investment amount
         """
+        # Ensure payload is a dict, not string or other type
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(
+                "gateway_payload must be a JSON object, not a string or other type."
+            )
+        
+        # Check all required fields are present
         required_fields = ['shares_requested', 'project_id', 'investor_id', 'txn_id', 'amount']
         missing = [f for f in required_fields if f not in value]
         if missing:
             raise serializers.ValidationError(
-                f"Gateway payload missing required fields: {', '.join(missing)}"
+                f"gateway_payload missing required fields: {', '.join(missing)}. "
+                f"Required fields are: {', '.join(required_fields)}"
             )
         
         # Type validation for critical fields
@@ -161,21 +204,23 @@ class PaymentCallbackSerializer(serializers.Serializer):
                 "Field 'amount' must be a string or number."
             )
         
+        if not isinstance(value.get('txn_id'), str):
+            raise serializers.ValidationError(
+                "Field 'txn_id' must be a string."
+            )
+        
+        # Validate that project_id and investor_id are non-empty strings
+        if not value.get('project_id') or not isinstance(value.get('project_id'), str):
+            raise serializers.ValidationError(
+                "Field 'project_id' must be a non-empty string (UUID)."
+            )
+        
+        if not value.get('investor_id') or not isinstance(value.get('investor_id'), str):
+            raise serializers.ValidationError(
+                "Field 'investor_id' must be a non-empty string (UUID)."
+            )
+        
         return value
-
-    @extend_schema_field({
-        'type': 'object',
-        'properties': {
-            'shares_requested': {'type': 'integer', 'example': 2},
-            'project_id': {'type': 'string', 'format': 'uuid', 'example': '71b7d9e6-f29a-46e0-9899-f0dd317403a7'},
-            'investor_id': {'type': 'string', 'format': 'uuid', 'example': '8d4594d3-7a6c-430d-bfbe-d521316deba2'},
-            'txn_id': {'type': 'string', 'example': 'TXN001'},
-            'amount': {'type': 'string', 'example': '93.06'}
-        },
-        'required': ['shares_requested', 'project_id', 'investor_id', 'txn_id', 'amount']
-    })
-    def get_gateway_payload(self):
-        return None
 
 
 @extend_schema_serializer(
@@ -209,8 +254,8 @@ class SharePurchaseListSerializer(serializers.ModelSerializer):
     project_id = serializers.UUIDField(source='project.id', read_only=True)
     project_title = serializers.CharField(source='project.title', read_only=True)
     project_category = serializers.CharField(source='project.category', read_only=True)
-    payment_status = serializers.CharField(source='payment.status', read_only=True)
-    payment_reference = serializers.CharField(source='payment.reference_id', read_only=True)
+    payment_status = serializers.CharField(source='payment_transaction.status', read_only=True)
+    payment_reference = serializers.CharField(source='payment_transaction.reference_id', read_only=True)
 
     class Meta:
         model = SharePurchase
@@ -317,9 +362,9 @@ class SharePurchaseDetailSerializer(serializers.ModelSerializer):
         SRS: Provide complete transaction information for audit trail.
         """
         return {
-            'reference_id': obj.payment.reference_id,
-            'status': obj.payment.status,
-            'processed_at': obj.payment.processed_at
+            'reference_id': obj.payment_transaction.reference_id,
+            'status': obj.payment_transaction.status,
+            'processed_at': obj.payment_transaction.processed_at
         }
 
 
@@ -399,7 +444,7 @@ class PaymentTransactionSerializer(serializers.ModelSerializer):
         Check if transaction resulted in share purchase.
         SRS: Distinguish between successful and failed transactions.
         """
-        return hasattr(obj, 'share_purchase')
+        return hasattr(obj, 'share_purchase') and obj.share_purchase is not None
 
 
 @extend_schema_serializer(

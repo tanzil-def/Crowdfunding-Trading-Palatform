@@ -2,7 +2,11 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import F, Sum, Count
 from django.utils import timezone
+from django.conf import settings
 from rest_framework.exceptions import ValidationError
+import hmac
+import hashlib
+import json
 
 from .models import SharePurchase, PaymentTransaction
 from apps.projects.models import Project
@@ -14,6 +18,41 @@ from apps.notifications.services import create_notification
 
 # Configuration
 PAYMENT_GATEWAY_BASE_URL = "https://sandbox.payment.gateway/pay"
+
+
+def verify_gateway_signature(request_body, signature, secret=None):
+    """
+    Verify payment gateway signature using HMAC-SHA256.
+    
+    Security-Critical: Validates that callback came from legitimate payment gateway.
+    
+    Args:
+        request_body: Raw request body bytes
+        signature: Signature from X-Signature header
+        secret: Gateway secret key (defaults to settings.PAYMENT_GATEWAY_SECRET)
+        
+    Returns:
+        bool: True if signature is valid, False otherwise
+        
+    Note: In production, the secret should be stored in environment variables
+          and never committed to source code.
+    """
+    if secret is None:
+        secret = getattr(settings, 'PAYMENT_GATEWAY_SECRET', '')
+    
+    # Convert request body to bytes if needed
+    if isinstance(request_body, str):
+        request_body = request_body.encode('utf-8')
+    
+    # Compute expected signature
+    computed_signature = hmac.new(
+        secret.encode('utf-8'),
+        request_body,
+        hashlib.sha256
+    ).hexdigest()
+    
+    # Use constant-time comparison to prevent timing attacks
+    return hmac.compare_digest(signature, computed_signature)
 
 
 def get_payment_url(reference_id: str) -> str:
@@ -162,14 +201,15 @@ def initiate_investment(project, investor, shares_requested, idempotency_key):
         total_amount = calculate_investment_amount(project_locked, shares_requested)
         
         # Check idempotency - prevent duplicate transactions
-        if PaymentTransaction.objects.filter(reference_id=idempotency_key).exists():
+        if PaymentTransaction.objects.filter(idempotency_key=idempotency_key).exists():
             raise ResourceConflictError(
                 f"Transaction with reference {idempotency_key} already exists."
             )
 
-        # Create payment transaction
+        # Create payment transaction with idempotency_key as reference_id
         payment = PaymentTransaction.objects.create(
             reference_id=idempotency_key,
+            idempotency_key=idempotency_key,
             investor=investor,
             project=project_locked,
             amount=total_amount,
@@ -199,7 +239,7 @@ def initiate_investment(project, investor, shares_requested, idempotency_key):
             'project_id': str(project_locked.id),
             'shares_requested': shares_requested,
             'idempotency_key': idempotency_key,
-            'reference_id': str(payment.id),
+            'reference_id': payment.reference_id,
             'payment_url': payment_url
         }
 
@@ -238,7 +278,7 @@ def process_successful_payment(payment, gateway_payload, shares_requested):
         share_purchase = SharePurchase.objects.create(
             investor=payment.investor,
             project=project,
-            payment=payment,
+            payment_transaction=payment,
             shares_purchased=shares_requested,
             price_per_share=project.share_price,
             total_amount=payment.amount
@@ -267,7 +307,7 @@ def process_successful_payment(payment, gateway_payload, shares_requested):
         
         # Create audit log
         log_admin_action(
-            admin_user=None,
+            actor=None,
             action='PAYMENT_SUCCESS',
             entity_type='SharePurchase',
             entity_id=str(share_purchase.id),
@@ -337,14 +377,14 @@ def confirm_payment(payment_reference_id, gateway_payload, success=True):
     
     Args:
         payment_reference_id: Reference ID from payment gateway
-        gateway_payload: Raw payload from payment gateway
+        gateway_payload: Raw payload from payment gateway (must be dict with required fields)
         success: Whether payment was successful
         
     Returns:
         dict: Processing result with status and details
         
     Raises:
-        ValidationError: If payment not found (404)
+        ValidationError: If payment not found or data invalid (400)
         ResourceConflictError: If already processed (409)
     """
     with transaction.atomic():
@@ -362,10 +402,14 @@ def confirm_payment(payment_reference_id, gateway_payload, success=True):
                 f"Payment already processed with status: {payment.get_status_display()}"
             )
         
-        # Get shares_requested from gateway payload or payment record
+        # Extract required fields from gateway payload
+        # Serializer already validated these exist and are correct type
+        if not isinstance(gateway_payload, dict):
+            raise ValidationError("gateway_payload must be a dictionary")
+        
         shares_requested = gateway_payload.get('shares_requested') or payment.shares_requested
-        if not shares_requested:
-            raise ValidationError("Gateway payload missing 'shares_requested' field")
+        if not shares_requested or shares_requested <= 0:
+            raise ValidationError("Invalid shares_requested from payload or payment record")
         
         if success:
             # Process successful payment

@@ -3,14 +3,20 @@ from django.db import models
 from apps.users.models import User
 
 class AuditLog(models.Model):
+    """
+    Audit log for tracking system actions.
     
+    actor field is nullable to support webhook-triggered actions (no user context).
+    """
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  
+        null=True,                  
+        blank=True,
         related_name='audit_logs',
-        limit_choices_to={'role': 'ADMIN'} 
+        help_text="User who performed action. None for webhook/system actions."
     )
     action = models.CharField(max_length=255)
     entity_type = models.CharField(max_length=100)

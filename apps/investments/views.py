@@ -1,6 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, OpenApiTypes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
@@ -114,31 +114,80 @@ class PaymentCallbackView(generics.GenericAPIView):
     """
     POST /api/v1/investments/payments/callback/
     
-    Payment gateway webhook endpoint.
-    Processes payment confirmations and creates share purchases.
+    Payment gateway webhook endpoint for processing payment confirmations.
+    
+    This endpoint is called by the payment gateway after payment processing is complete.
+    It confirms the payment and allocates shares to the investor atomically.
+    
+    Request Fields:
+        - payment_reference_id (string): Must match the reference_id from /initiate/ response
+        - success (boolean): true if payment successful, false if failed
+        - gateway_payload (JSON object): Full payment data from gateway with required fields:
+            * shares_requested (int): Number of shares being purchased
+            * project_id (string/UUID): Project being invested in
+            * investor_id (string/UUID): Investor making purchase
+            * txn_id (string): Gateway transaction ID
+            * amount (decimal): Total investment amount
     
     SRS Requirements:
     - Idempotent processing (409 if already processed)
     - Prevents duplicate callbacks
     - Atomic share allocation with select_for_update
-    - Audit logging
+    - Audit logging with actor=None for webhooks
+    
+    Response:
+        - status (string): "success" or "failed"
+        - share_purchase_id (UUID): ID of created SharePurchase (if successful)
+        - shares_purchased (int): Number of shares allocated (if successful)
+        - message (string): Description of result
     
     Note: This endpoint allows unauthenticated requests from payment gateway.
-    In production, implement proper signature verification.
-    
-    Request Body:
-        - payment_reference_id (string): Transaction reference
-        - success (boolean): Payment success status
-        - gateway_payload (object): Raw gateway data
+    In production, implement proper signature verification (e.g. X-Signature header HMAC).
     """
     permission_classes = [AllowAny]
     serializer_class = PaymentCallbackSerializer
 
     @extend_schema(
-        description="Payment gateway webhook endpoint. \n\n"
-                    "This is a webhook endpoint. In production: MUST verify gateway signature "
-                    "(e.g. X-Signature header) before processing. Currently documented as "
-                    "unauthenticated for sandbox/testing only."
+        description="Payment gateway webhook endpoint for share allocation.\n\n"
+                    "**Request Format:** gateway_payload MUST be a JSON object, not a string.\n\n"
+                    "**Security:** This endpoint is currently unauthenticated for sandbox testing. "
+                    "In production, MUST verify gateway signature using HMAC-SHA256 "
+                    "(e.g. X-Signature header) before processing.\n\n"
+                    "**Idempotency:** If same callback received twice, returns 409 Conflict. "
+                    "Safe to retry.",
+        request=PaymentCallbackSerializer,
+        responses={
+            200: OpenApiExample(
+                'Successful Callback Response',
+                value={
+                    "success": True,
+                    "message": "Payment callback processed successfully",
+                    "data": {
+                        "status": "success",
+                        "share_purchase_id": "c070ee16-acc5-421f-b7e5-616ec1d38fa2",
+                        "shares_purchased": 10,
+                        "message": "Payment confirmed and shares allocated successfully"
+                    }
+                }
+            ),
+            400: OpenApiExample(
+                'Bad Request - Invalid Format',
+                value={
+                    "success": False,
+                    "message": "Validation error",
+                    "errors": {
+                        "gateway_payload": ["gateway_payload must be a JSON object, not a string"]
+                    }
+                }
+            ),
+            409: OpenApiExample(
+                'Conflict - Already Processed',
+                value={
+                    "success": False,
+                    "message": "Payment already processed with status: SUCCESS"
+                }
+            ),
+        }
     )
     def post(self, request):
         # Validate callback data
@@ -217,11 +266,8 @@ class MyInvestmentsListView(generics.ListAPIView):
             investor=self.request.user
         ).select_related(
             'project',
-            'payment'
+            'payment_transaction'
         ).order_by('-created_at')
-
-
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, OpenApiTypes
 
 
 class InvestmentDetailView(generics.RetrieveAPIView):

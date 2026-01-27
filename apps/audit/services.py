@@ -2,19 +2,21 @@
 
 from apps.audit.models import AuditLog
 
-def log_admin_action(admin_user, action, entity_type, entity_id, metadata=None):
+def log_admin_action(actor, action, entity_type, entity_id, metadata=None):
     """
     Record an immutable audit log.
     
+    Supports both user-triggered actions and webhook/system actions.
+    
     Args:
-        admin_user: User instance performing the action
-        action: str, e.g., "Approved Project"
-        entity_type: str, e.g., "Project"
+        actor: User instance performing the action. None for webhook/system actions.
+        action: str, e.g., "Approved Project", "PAYMENT_SUCCESS"
+        entity_type: str, e.g., "Project", "SharePurchase"
         entity_id: UUID of the entity
         metadata: optional dict, e.g., {"reason": "Incomplete docs"}
     """
     AuditLog.objects.create(
-        actor=admin_user,
+        actor=actor,  # None is allowed for webhook actions
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
