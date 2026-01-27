@@ -44,3 +44,4 @@ DOCUMENTATION_*.md
 test_requirements.py
 PRODUCTION_READY_VERIFICATION.txt
 
+venv/
