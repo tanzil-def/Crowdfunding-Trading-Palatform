@@ -193,21 +193,35 @@ class PaymentCallbackSerializer(serializers.Serializer):
                 f"Required fields are: {', '.join(required_fields)}"
             )
         
-        # Type validation for critical fields
-        if not isinstance(value.get('shares_requested'), int):
-            raise serializers.ValidationError(
-                "Field 'shares_requested' must be an integer."
-            )
-        
-        if not isinstance(value.get('amount'), (str, int, float)):
-            raise serializers.ValidationError(
-                "Field 'amount' must be a string or number."
-            )
-        
-        if not isinstance(value.get('txn_id'), str):
-            raise serializers.ValidationError(
-                "Field 'txn_id' must be a string."
-            )
+        # Relaxed Type validation with conversion support
+        try:
+            # Validate shares_requested
+            shares_val = value.get('shares_requested')
+            if isinstance(shares_val, str):
+                if not shares_val.isdigit():
+                     raise serializers.ValidationError("Field 'shares_requested' must be a valid integer string.")
+                value['shares_requested'] = int(shares_val)
+            elif not isinstance(shares_val, int):
+                raise serializers.ValidationError("Field 'shares_requested' must be an integer.")
+
+            # Validate amount
+            amount_val = value.get('amount')
+            if isinstance(amount_val, str):
+                # Simple check for number format
+                try:
+                    float(amount_val)
+                except ValueError:
+                    raise serializers.ValidationError("Field 'amount' must be a valid number string.")
+            elif not isinstance(amount_val, (int, float)):
+                 raise serializers.ValidationError("Field 'amount' must be a string or number.")
+            
+            # Validate txn_id
+            if not isinstance(value.get('txn_id'), str):
+                 raise serializers.ValidationError("Field 'txn_id' must be a string.")
+
+        except ValueError as e:
+             raise serializers.ValidationError(str(e))
+
         
         # Validate that project_id and investor_id are non-empty strings
         if not value.get('project_id') or not isinstance(value.get('project_id'), str):

@@ -1,6 +1,7 @@
 from .models import Notification
 from apps.users.models import User
 from django.db import transaction
+from django.utils import timezone
 import json
 
 def create_notification(user, notification_type, message, title=None, metadata=None):
@@ -240,7 +241,7 @@ def notify_investor_access_approved(access_request):
             'access_request_id': str(access_request.id),
             'project_id': str(project.id),
             'project_title': project.title,
-            'approved_at': str(access_request.updated_at),
+            'approved_at': str(timezone.now()),
         }
     )
 
@@ -269,7 +270,7 @@ def notify_investor_access_rejected(access_request, reason=None):
             'project_id': str(project.id),
             'project_title': project.title,
             'reason': reason,
-            'rejected_at': str(access_request.updated_at),
+            'rejected_at': str(timezone.now()),
         }
     )
 
@@ -294,7 +295,7 @@ def notify_investor_access_revoked(access_request, revoked_by):
             'project_id': str(project.id),
             'project_title': project.title,
             'revoked_by': revoked_by.email,
-            'revoked_at': str(access_request.updated_at),
+            'revoked_at': str(timezone.now()),
         }
     )
 
