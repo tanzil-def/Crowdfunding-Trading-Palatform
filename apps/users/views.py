@@ -253,10 +253,9 @@ class PasswordResetRequestView(generics.GenericAPIView):
         except User.DoesNotExist:
             pass
         
-        return Response({
-            "success": True,
-            "message": "If an account with this email exists, a password reset link has been sent."
-        }, status=status.HTTP_200_OK)
+        return success_response(
+            message="If an account with this email exists, a password reset link has been sent."
+        )
 
 
 class PasswordResetConfirmView(generics.GenericAPIView):

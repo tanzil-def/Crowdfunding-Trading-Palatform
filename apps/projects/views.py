@@ -137,8 +137,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Project.objects.none()
         
-        # Action-specific querysets
-        if self.action in ['list', 'compare']:
+        # Base querysets based on user roles and project status
+        if self.action in ['list', 'browse', 'compare', 'categories']:
             # Browsing: Publicly approved projects
             return Project.objects.filter(status='APPROVED')
             
@@ -146,20 +146,23 @@ class ProjectViewSet(viewsets.ModelViewSet):
             # Developer's own projects
             return Project.objects.filter(developer=user)
             
-        if self.action == 'retrieve':
-            # Detail view:
-            # - Developers see their own
-            # - Admins see all
-            # - Investors see Approved
-            qs = Project.objects.all()
-            if user.role == 'INVESTOR':
-                return qs.filter(status='APPROVED')
-            if user.role == 'DEVELOPER':
-                # Developers can see their own (any status) or others (Approved)
-                return qs.filter(developer=user) | qs.filter(status='APPROVED')
+        # Detail actions: retrieve, update, partial_update, submit, upload_media, list_media, delete_media, toggle_media_restriction, investments
+        # Visibility rules:
+        # - Developers see their own (any status) or others (Approved)
+        # - Admins see all
+        # - Investors see Approved
+        qs = Project.objects.all()
+        if user.is_anonymous:
+            return qs.filter(status='APPROVED')
+        
+        if user.role == 'ADMIN':
             return qs
-
-        return Project.objects.all()
+        if user.role == 'DEVELOPER':
+            return qs.filter(developer=user) | qs.filter(status='APPROVED')
+        if user.role == 'INVESTOR':
+            return qs.filter(status='APPROVED')
+            
+        return qs.filter(status='APPROVED')
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -183,13 +186,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), IsDeveloper()]
         if self.action == 'my_projects':
             return [IsAuthenticated(), IsDeveloper()]
-        if self.action in ['update', 'partial_update', 'submit', 'upload_media']:
+        if self.action in ['update', 'partial_update', 'submit', 'upload_media', 'delete_media', 'toggle_media_restriction']:
             return [IsAuthenticated(), IsDeveloper(), IsProjectOwner()]
-        if self.action in ['list', 'retrieve', 'compare', 'list_media', 'categories']:
+        if self.action in ['list', 'retrieve', 'compare', 'list_media', 'categories', 'browse']:
             return [IsAuthenticated()]  
         if self.action == 'investments':
             return [IsAuthenticated(), (IsAdmin | IsProjectOwner)()]
-        return [IsAuthenticated()]
         return [IsAuthenticated()]
 
     def list(self, request, *args, **kwargs):

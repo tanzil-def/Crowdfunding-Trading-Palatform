@@ -123,7 +123,7 @@ class EmailVerificationToken(models.Model):
         on_delete=models.CASCADE,
         related_name='verification_tokens'
     )
-    token = models.CharField(max_length=64, unique=True, db_index=True)
+    token = models.CharField(max_length=128, unique=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)
@@ -154,7 +154,7 @@ class PasswordResetToken(models.Model):
         on_delete=models.CASCADE,
         related_name='reset_tokens'
     )
-    token = models.CharField(max_length=64, unique=True, db_index=True)
+    token = models.CharField(max_length=128, unique=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)

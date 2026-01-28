@@ -275,7 +275,7 @@ crowdfunding_platform/
 
 ### Prerequisites
 
-- **Python**: 3.10 or higher
+- **Python**: 3.12 or higher
 - **PostgreSQL**: 14 or higher
 - **pip**: Latest version
 - **Git**: For version control

@@ -32,4 +32,4 @@ class AuditLogSerializer(serializers.ModelSerializer):
             'metadata',
             'created_at'
         )
-        read_only_fields = fields  # Fully read-only
+        read_only_fields = fields 

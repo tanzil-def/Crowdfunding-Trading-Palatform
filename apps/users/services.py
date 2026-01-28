@@ -18,8 +18,8 @@ from utils.exceptions import (
 
 
 def generate_secure_token():
-    """Generate a cryptographically secure token"""
-    return secrets.token_urlsafe(48)
+    """Generate a cryptographically secure token (Hex for better reliability)"""
+    return secrets.token_hex(32)
 
 
 def register_user(validated_data):
@@ -59,33 +59,31 @@ def create_verification_token(user):
 
 def send_verification_email(user):
     """
-    Send verification email to user.
+    Send verification email to user (HTML & Plain text).
     """
     token = create_verification_token(user)
     verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token.token}"
     
     subject = "Verify Your Email - Crowdfunding Platform"
-    message = f"""
-Hi {user.first_name},
-
-Welcome to Crowdfunding Platform!
-
-Please verify your email address by clicking the link below:
-{verification_url}
-
-This link will expire in {settings.EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES} minutes.
-
-If you did not create this account, please ignore this email.
-
-Best regards,
-Crowdfunding Platform Team
-    """.strip()
+    
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    
+    context = {
+        'first_name': user.first_name,
+        'verification_url': verification_url,
+        'expiry_minutes': settings.EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES
+    }
+    
+    html_message = render_to_string('emails/verification_email.html', context)
+    plain_message = strip_tags(html_message)
     
     send_mail(
         subject=subject,
-        message=message,
+        message=plain_message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
+        html_message=html_message,
         fail_silently=False
     )
 
@@ -133,32 +131,30 @@ def create_password_reset_token(user):
 
 
 def send_password_reset_email(user):
-    """Send password reset email"""
+    """Send password reset email (HTML & Plain text)"""
     token = create_password_reset_token(user)
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token.token}"
     
     subject = "Reset Your Password - Crowdfunding Platform"
-    message = f"""
-Hi {user.first_name},
-
-We received a request to reset your password.
-
-Click the link below to reset your password:
-{reset_url}
-
-This link will expire in {settings.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES} minutes.
-
-If you did not request this password reset, please ignore this email.
-
-Best regards,
-Crowdfunding Platform Team
-    """.strip()
+    
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    
+    context = {
+        'first_name': user.first_name,
+        'reset_url': reset_url,
+        'expiry_minutes': settings.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES
+    }
+    
+    html_message = render_to_string('emails/password_reset_email.html', context)
+    plain_message = strip_tags(html_message)
     
     send_mail(
         subject=subject,
-        message=message,
+        message=plain_message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
+        html_message=html_message,
         fail_silently=False
     )
 

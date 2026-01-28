@@ -132,7 +132,7 @@ class EmailVerificationSerializer(serializers.Serializer):
     Email verification serializer.
     SRS: Email verification required.
     """
-    token = serializers.CharField(required=True, max_length=64)
+    token = serializers.CharField(required=True, max_length=128)
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -147,7 +147,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     """
     Password reset confirmation serializer.
     """
-    token = serializers.CharField(required=True, max_length=64)
+    token = serializers.CharField(required=True, max_length=128)
     password = serializers.CharField(
         required=True,
         write_only=True,
