@@ -10,7 +10,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-🔗 [Live Demo](https://api.crowdfunding.io) · 📚 [API Docs](https://api.crowdfunding.io/swagger/) · 🐛 [Report Bug](https://github.com/yourusername/crowdfunding-platform/issues) · ✨ [Request Feature](https://github.com/yourusername/crowdfunding-platform/issues)
+🔗 [Live Demo](https://api.crowdfunding.io) · 📚 [API Docs](https://api.crowdfunding.io/swagger/) · 🐛 [Report Bug](https://github.com/tanzil-def/crowdfunding-platform/issues) · ✨ [Request Feature](https://github.com/tanzil-def/crowdfunding-platform/issues)
 
 </div>
 
@@ -113,7 +113,7 @@ graph TB
 
 ```bash
 # 1. Clone & setup
-git clone https://github.com/yourusername/crowdfunding-platform.git
+git clone https://github.com/tanzil-def/crowdfunding-platform.git
 cd crowdfunding-platform
 python -m venv venv && source venv/bin/activate  # Windows: venv\Scripts\activate
 
@@ -444,6 +444,34 @@ docker-compose down
 
 ---
 
+## 👨‍💻 Author
+
+<div align="center">
+
+<table>
+<tr>
+<td align="center">
+<a href="https://github.com/tanzil-def">
+<img src="https://github.com/tanzil-def.png" width="100px;" alt="Tanzil" style="border-radius:50%;"/>
+<br />
+<sub><b>Tanzil</b></sub>
+</a>
+<br />
+<sub>Full-Stack Developer</sub>
+<br />
+<a href="https://github.com/tanzil-def" title="GitHub">
+<img src="https://img.shields.io/badge/GitHub-tanzil--def-181717?style=flat-square&logo=github" alt="GitHub"/>
+</a>
+</td>
+</tr>
+</table>
+
+**Created and maintained by [tanzil-def](https://github.com/tanzil-def)**
+
+</div>
+
+---
+
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file
@@ -454,8 +482,8 @@ MIT License - see [LICENSE](LICENSE) file
 
 **Built with ❤️ using Django REST Framework**
 
-[![GitHub Stars](https://img.shields.io/github/stars/yourusername/crowdfunding-platform?style=social)](https://github.com/yourusername/crowdfunding-platform)
-[![GitHub Forks](https://img.shields.io/github/forks/yourusername/crowdfunding-platform?style=social)](https://github.com/yourusername/crowdfunding-platform/fork)
+[![GitHub Stars](https://img.shields.io/github/stars/tanzil-def/crowdfunding-platform?style=social)](https://github.com/tanzil-def/crowdfunding-platform)
+[![GitHub Forks](https://img.shields.io/github/forks/tanzil-def/crowdfunding-platform?style=social)](https://github.com/tanzil-def/crowdfunding-platform/fork)
 
 [⬆ Back to Top](#-crowdfunding-trading-platform)
 
